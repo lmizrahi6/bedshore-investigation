@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bedshore Condominium — Forensic Investigation Dashboard v6.0</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<style>
+  body { margin:0; padding:0; background:#020617; font-family:'DM Sans',system-ui,sans-serif; }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:#1e293b; }
+  ::-webkit-scrollbar-thumb { background:#475569; border-radius:3px; }
+  .tab-bar { display:flex; overflow-x:auto; scrollbar-width:thin; }
+  .tab-bar::-webkit-scrollbar { height:3px; }
+  a.evidence-link { text-decoration:underline; color:#60a5fa; }
+  a.evidence-link:hover { color:#93c5fd; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const { BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,Cell,PieChart,Pie } = Recharts;
+
+const fmt = n => {
+  if (n===null||n===undefined) return '--';
+  const s = "$"+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
+  return n<0?'-'+s:s;
+};
+const roleColors = {
+  sponsor:{bg:"#7c3aed",text:"#c4b5fd"},alvic:{bg:"#dc2626",text:"#fca5a5"},
+  intermediary:{bg:"#ea580c",text:"#fdba74"},shell:{bg:"#d97706",text:"#fcd34d"},
+  victim:{bg:"#3b82f6",text:"#93c5fd"},institutional:{bg:"#64748b",text:"#cbd5e1"},
+  prior:{bg:"#0f766e",text:"#5eead4"}
+};
+const nameRoleMap = {
+  "Motovich":"sponsor","Boris Motovich":"sponsor","Alexander Motovich":"sponsor","Gruber":"sponsor","Harold Gruber":"sponsor",
+  "Alvic":"alvic","Levin":"alvic","Seymon Levin":"alvic","Levina":"alvic","Alina Levina":"alvic","Rodriguez":"alvic","Jay Rodriguez":"alvic","Sokolov":"alvic","Andrey Sokolov":"alvic",
+  "Fixler":"intermediary","Eli Fixler":"intermediary","AL VANDUZER":"intermediary","Elite Equity":"intermediary","North Star":"intermediary","Suslovich":"intermediary",
+  "Chen":"shell","Xiu Bin Chen":"shell","Bracha Tzuri":"shell","Adar":"shell","Adar Enterprises":"shell","Adimia":"shell",
+  "Mizrahi":"victim","Gabi Mizrahi":"victim","Bedshore":"victim","Tsvetkova":"victim","Wilmington":"victim","Zhabotinsky":"victim",
+  "Dobrer":"institutional","Nataliya Dobrer":"institutional","PennyMac":"institutional","Koyf":"institutional","Kamenetsky":"institutional",
+  "Kitsis":"prior","Oscar Kitsis":"prior","Googla":"prior","Homecrest":"prior"
+};
+function Name({children}) {
+  if (!children) return null;
+  const parts=[]; let rem=String(children);
+  const names=Object.keys(nameRoleMap).sort((a,b)=>b.length-a.length);
+  let idx=0;
+  while (rem.length>0) {
+    let found=false;
+    for (const name of names) {
+      if (rem.startsWith(name)) {
+        const c=roleColors[nameRoleMap[name]];
+        parts.push(<span key={idx++} style={{color:c.text,fontWeight:600}}>{name}</span>);
+        rem=rem.slice(name.length); found=true; break;
+      }
+    }
+    if (!found) { let next=rem.length; for (const name of names) { const i=rem.indexOf(name); if(i>0&&i<next) next=i; } parts.push(<span key={idx++}>{rem.slice(0,next)}</span>); rem=rem.slice(next); }
+  }
+  return <span>{parts}</span>;
+}
+
+function Badge({t,c}) {
+  const colors={red:"bg-red-900/60 text-red-300 border-red-700",green:"bg-green-900/60 text-green-300 border-green-700",amber:"bg-amber-900/60 text-amber-300 border-amber-700",blue:"bg-blue-900/60 text-blue-300 border-blue-700",purple:"bg-purple-900/60 text-purple-300 border-purple-700",slate:"bg-slate-800 text-slate-300 border-slate-600",orange:"bg-orange-900/60 text-orange-300 border-orange-700",teal:"bg-teal-900/60 text-teal-300 border-teal-700"};
+  return <span className={`text-xs font-bold px-2 py-0.5 rounded border ${colors[c]||colors.slate}`}>{t}</span>;
+}
+function Sec({title,sub,children}) {
+  return <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden mb-4">
+    <div className="px-5 py-4 border-b border-slate-800">
+      {title&&<h3 className="text-white font-bold">{title}</h3>}
+      {sub&&<p className="text-sm text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+    <div className="p-5">{children}</div>
+  </div>;
+}
+function Q({children}) {
+  return <div className="border-l-4 border-amber-500 bg-amber-950/30 px-4 py-3 my-3 rounded-r-lg">
+    <p className="text-amber-200 text-sm italic">{children}</p>
+  </div>;
+}
+function KPI({label,value,sub,color}) {
+  const bg = color==="red"?"from-red-950 to-red-900/50 border-red-800":color==="amber"?"from-amber-950 to-amber-900/50 border-amber-800":color==="blue"?"from-blue-950 to-blue-900/50 border-blue-800":"from-slate-900 to-slate-800/50 border-slate-700";
+  return <div className={`bg-gradient-to-br ${bg} rounded-xl border p-4`}>
+    <p className="text-xs text-slate-400 uppercase tracking-wider">{label}</p>
+    <p className="text-2xl font-bold text-white mt-1">{value}</p>
+    {sub&&<p className="text-xs text-slate-500 mt-1">{sub}</p>}
+  </div>;
+}
+function EL({crfn,label,href,type}) {
+  const url = href || (crfn ? "https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000" : null);
+  if (url) return <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:brightness-125 underline decoration-slate-700">{crfn&&<span className="font-mono bg-slate-800 px-1 rounded">CRFN {crfn}</span>}{label&&<span>{label}</span>}{"\u2197"}</a>;
+  return <span className="text-xs text-slate-500 font-mono">{crfn||label}</span>;
+}
+function ChapterCard({num,title,what,cost,proves,evidence,screenshots}) {
+  const [open,setOpen]=useState(false);
+  const [showEv,setShowEv]=useState(false);
+  return <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden mb-3">
+    <button onClick={()=>setOpen(!open)} className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-800/80 transition-colors">
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-bold text-amber-400 bg-amber-950 px-2 py-1 rounded">CH.{num}</span>
+        <span className="text-white font-bold">{title}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {cost&&<span className="text-red-400 font-bold text-sm">{cost}</span>}
+        <span className="text-slate-500">{open?"▲":"▼"}</span>
+      </div>
+    </button>
+    {open&&<div className="px-5 pb-5 space-y-3 border-t border-slate-700 pt-4">
+      <div><p className="text-xs text-red-400 font-bold uppercase mb-1">What they did</p><p className="text-sm text-slate-300"><Name>{what}</Name></p></div>
+      <div><p className="text-xs text-amber-400 font-bold uppercase mb-1">What it proves</p><p className="text-sm text-slate-300"><Name>{proves}</Name></p></div>
+      {evidence&&<div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-slate-700/50"><span className="text-xs text-slate-600 uppercase font-bold">Sources:</span>{evidence.map((e,i)=>typeof e==='string'?<span key={i} className="text-xs text-slate-500">{e}</span>:<a key={i} href={e.href||'https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000'} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">{e.crfn?'CRFN '+e.crfn:e.label} \u2197</a>)}{screenshots&&<button onClick={(ev)=>{ev.stopPropagation();setShowEv(!showEv);}} className="text-xs bg-amber-950/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded hover:bg-amber-900/60 ml-auto">{showEv?"Hide":"\ud83d\udcf7 View"} Evidence ({screenshots.length})</button>}</div>}
+      {showEv&&screenshots&&<div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">{screenshots.map((s,i)=><a key={i} href={s.img} target="_blank" className="block rounded-lg overflow-hidden border border-slate-700 hover:border-amber-600"><div className="aspect-video bg-slate-900 overflow-hidden"><img src={s.img} alt={s.label} className="w-full h-full object-cover" onError={(ev)=>{ev.target.style.display='none';}}/></div><p className="text-xs text-slate-400 p-1.5">{s.label}</p></a>)}</div>}
+    </div>}
+  </div>;
+}
+
+// ═══ DATA ═══
+const networkNodes = [
+  {id:"motovich",name:"Boris Motovich",sub:"15yr federal · shells reused",tier:"sponsor",x:400,y:220,r:32},
+  {id:"gruber",name:"Harold Gruber",sub:"AG-banned 2014",tier:"sponsor",x:280,y:100,r:22},
+  {id:"alex",name:"Alexander Motovich",sub:"9+ units",tier:"sponsor",x:520,y:100,r:22},
+  {id:"alvic",name:"Alvic Prop. Mgmt",sub:"104 Ave O",tier:"alvic",x:600,y:220,r:24},
+  {id:"levin",name:"Seymon Levin",sub:"Sole signatory",tier:"alvic",x:650,y:340,r:22},
+  {id:"levina",name:"Alina Levina",sub:"Attorney/daughter",tier:"alvic",x:550,y:400,r:20},
+  {id:"rodriguez",name:"Jay Rodriguez",sub:"Son-in-law",tier:"alvic",x:450,y:420,r:18},
+  {id:"fixler",name:"Eli Fixler",sub:"1507 Ave M",tier:"intermediary",x:750,y:160,r:20},
+  {id:"vanduzer",name:"AL VANDUZER LLC",sub:"B-2 shell",tier:"intermediary",x:760,y:280,r:18},
+  {id:"elite",name:"Elite Equity",sub:"50+ ACRIS",tier:"intermediary",x:780,y:380,r:18},
+  {id:"northstar",name:"North Star Ins.",sub:"slava@alvicmgm.com",tier:"intermediary",x:250,y:380,r:18},
+  {id:"suslovich",name:"Suslovich & Klein",sub:"1507 Ave M",tier:"intermediary",x:820,y:220,r:16},
+  {id:"adar",name:"Adar Enterprises",sub:"Serial flipper",tier:"shell",x:350,y:480,r:18},
+  {id:"bracha",name:"Bracha Tzuri",sub:"Chen/C-2 buyer",tier:"shell",x:500,y:500,r:18},
+  {id:"adart",name:"Adar Tishrei",sub:"2349 E 18th",tier:"shell",x:680,y:470,r:18},
+  {id:"adimia",name:"Adimia Holding",sub:"Hard money",tier:"shell",x:200,y:480,r:18},
+  {id:"kitsis",name:"Kitsis Network",sub:"Prior fraud · 1824 E 17th",tier:"prior",x:160,y:220,r:20}
+];
+const networkEdges = [
+  {from:"motovich",to:"alvic",desc:"Motovich owned Bedshore units during Alvic management. Pattern: build condos, retain units, install management."},
+  {from:"motovich",to:"gruber",desc:"Gruber was Motovich's attorney. Both filed false instruments. Gruber banned 2014 for 9 fraudulent AG filings."},
+  {from:"motovich",to:"alex",desc:"Likely father-son. Alexander continues pattern: 9+ units, same-day POAs, at least 2 in Alvic-managed buildings."},
+  {from:"alex",to:"alvic",desc:"Alexander's units at 2158 Ocean Ave and 380 Kings Hwy are Alvic-managed (HPD confirmed)."},
+  {from:"alvic",to:"levin",desc:"Levin IS Alvic. Sole bank signatory. Bought D-2 and B-2. On both sides of every transaction."},
+  {from:"levin",to:"levina",desc:"Father-daughter. Levina notarized false lien release while serving as condo's attorney."},
+  {from:"levina",to:"rodriguez",desc:"Husband-wife. Entire management = one family: Levin (principal), Levina (attorney), Rodriguez (account mgr)."},
+  {from:"levin",to:"fixler",desc:"Co-purchasers on B-2 deed (ACRIS 2019061000014002). Both at 1507 Ave M alongside AL VANDUZER LLC."},
+  {from:"fixler",to:"vanduzer",desc:"AL VANDUZER LLC is B-2 shell. Filed Aug 2018. Same DOS filing agent as Lefferts RE (Allstate Corp Svcs)."},
+  {from:"fixler",to:"elite",desc:"Elite Equity (50+ ACRIS docs, 16yr entity) operates from 1507 Ave M. Only entity with current DOS filings."},
+  {from:"fixler",to:"adart",desc:"Fixler bought from Adar Tishrei and Lefferts RE — both at 2349 E 18th St."},
+  {from:"fixler",to:"suslovich",desc:"Suslovich & Klein is DOS process agent for Elite Equity at 1507 Ave M."},
+  {from:"adar",to:"bracha",desc:"Both at 2516 Ave W. Adar bought B-2 ($10K), Bracha Tzuri bought C-2 ($15K). $25K for two units."},
+  {from:"bracha",to:"alvic",desc:"Bracha Tzuri: zero HOA pursued, no Buildium account, false lien release clearing debt."},
+  {from:"adimia",to:"adar",desc:"Adimia provided $355K on 2516 Ave W and $650K on Block 7647. Hard money fueling the pipeline."},
+  {from:"alvic",to:"northstar",desc:"North Star broker email: slava@alvicmgm.com — Alvic's own domain."},
+  {from:"levin",to:"kitsis",desc:"Levin litigated 16 years (2009-2025) via 4 shells. Googla Imports at 4750 Bedford Ave — SAME TAX BLOCK (8782) as Bedshore. Appellate court upheld fraud. Abandoned at trial."}
+];
+const bankData = [{year:"2017",dep:77001,deb:67416,net:9585,flag:null},{year:"2018",dep:75667,deb:75663,net:3,flag:"gap"},{year:"2019",dep:218865,deb:166830,net:52035,flag:"3x"},{year:"2020",dep:98322,deb:118152,net:-19830,flag:null},{year:"2021",dep:88930,deb:91507,net:-2577,flag:null},{year:"2022",dep:96343,deb:111973,net:-15630,flag:null},{year:"2023",dep:97588,deb:98290,net:-702,flag:null},{year:"2024",dep:92637,deb:109438,net:-16801,flag:null},{year:"2025",dep:136863,deb:157477,net:-20614,flag:null}];
+const insuranceData = [{year:"2017",bedshore:11250,comp:12000},{year:"2018",bedshore:15107,comp:12500},{year:"2019",bedshore:22712,comp:13200},{year:"2020",bedshore:19768,comp:13800},{year:"2021",bedshore:20594,comp:14500},{year:"2022",bedshore:33746,comp:15200},{year:"2023",bedshore:43804,comp:16000},{year:"2024",bedshore:29692,comp:17000},{year:"2025",bedshore:71426,comp:18000}];
+const spendingData = [
+  {year:"2017",revenue:77001,expenses:67416,rev_detail:[{item:"HOA Assessments",amt:72000},{item:"Late Fees/Other",amt:5001}],exp_detail:[{item:"Management Fee",amt:8640},{item:"Insurance",amt:11250},{item:"Utilities/Electric",amt:4200},{item:"Water/Sewer",amt:12500},{item:"Repairs/Maintenance",amt:8500},{item:"Elevator",amt:5300},{item:"Professional Fees",amt:3100},{item:"Other",amt:13926}]},
+  {year:"2018",revenue:75667,expenses:75663,rev_detail:[{item:"HOA Assessments",amt:72000},{item:"Other/Unknown",amt:3667}],exp_detail:[{item:"Management Fee",amt:8640},{item:"Insurance",amt:15107},{item:"Utilities/Electric",amt:4500},{item:"Water/Sewer",amt:14000},{item:"Repairs/Maintenance",amt:10000},{item:"Elevator",amt:5400},{item:"Professional Fees",amt:3100},{item:"Other",amt:14916}]},
+  {year:"2019",revenue:218865,expenses:166830,rev_detail:[{item:"HOA Assessments",amt:92000},{item:"Insurance Proceeds",amt:74047},{item:"B-2 Closing",amt:36667},{item:"D-2 Levin Payment",amt:16000},{item:"Other",amt:151}],exp_detail:[{item:"Alvic Self-Pay (Insurance)",amt:53471},{item:"Water/Sewer",amt:48352},{item:"Insurance",amt:22712},{item:"Management Fee",amt:8640},{item:"Utilities/Electric",amt:5200},{item:"Elevator",amt:5400},{item:"Repairs/Maintenance",amt:5000},{item:"Professional Fees",amt:3100},{item:"Other",amt:14955}]},
+  {year:"2020",revenue:98322,expenses:118152,rev_detail:[],exp_detail:[]},
+  {year:"2021",revenue:88930,expenses:91507,rev_detail:[],exp_detail:[]},
+  {year:"2022",revenue:96343,expenses:111973,rev_detail:[],exp_detail:[]},
+  {year:"2023",revenue:97588,expenses:98290,rev_detail:[],exp_detail:[]},
+  {year:"2024",revenue:92637,expenses:109438,rev_detail:[{item:"Common Charges",amt:95866},{item:"Special Assessment",amt:10000},{item:"Late Fees/Other",amt:2197}],exp_detail:[{item:"Insurance",amt:46746},{item:"Water/Sewer",amt:20401},{item:"Repairs/Maintenance",amt:15347},{item:"Maint Billings",amt:14400},{item:"Management Fee",amt:8640},{item:"Elevator",amt:5720},{item:"Electric",amt:4961},{item:"Roofing",amt:4200},{item:"Professional Fees",amt:3245},{item:"Fees/Permits",amt:3231},{item:"Sprinkler",amt:3220},{item:"Phone",amt:1206},{item:"Supplies/Admin",amt:1069},{item:"NYC Tax",amt:75}]},
+  {year:"2025",revenue:136863,expenses:157477,rev_detail:[],exp_detail:[]}
+];
+
+function TabThesis() {
+  return <div className="space-y-4">
+    <div className="bg-gradient-to-r from-red-950/80 to-slate-900 rounded-xl border border-red-900 p-6">
+      <h2 className="text-2xl font-bold text-white mb-3">$1.1 Million+ Extracted Over 12 Years Through Five Mechanisms</h2>
+      <p className="text-slate-300 text-sm leading-relaxed"><n>A convicted federal felon (Boris Motovich, 15 years federal) sponsored Bedshore Condominium, installed Alvic Property Management (Seymon Levin) whose shell company operated on the same tax block (Block 8782), and for 12 years that management company extracted over one million dollars through false document filings, self-dealing real estate transactions, insurance diversion, manufactured phantom receivables, and structural overcharging — while governance was controlled by a proxy voting bloc (Andrey Sokolov, ~30%) that ensured no independent oversight.</n></p>
+      <p className="text-slate-400 text-sm mt-3"><n>When a new board was elected (Feb 24, 2026), Alvic triggered a bank lockout via a fictitious check, refused audit logs, invoked laches, and admitted in writing that Alina Levina could not explain the central instrument she personally notarized. The management contract binding the Association was signed 15 days before the election, backdated 39 days, and never countersigned by Alvic's own general manager.</n></p>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <KPI label="Confirmed Losses" value="$166,728" sub="8 items, zero estimates" color="red"/>
+      <KPI label="Estimated Losses" value="$789,000+" sub="6 items, requires forensic audit" color="amber"/>
+      <KPI label="Pending Investigation" value="$169,309+" sub="4 items, requires subpoena" color="blue"/>
+      <KPI label="Combined Floor" value="$1,125,000+" sub="Conservative total" color="red"/>
+    </div>
+    <Sec title="Five Mechanisms of Extraction" sub="Each mechanism is documented in THE PATTERN tab with what→how→cost→proves structure">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {[
+          {icon:"📄",title:"False Instruments",desc:"Forged POA + false lien release certifying $29K 'PAID IN FULL' when $0 received. Notarized by Levin's own daughter.",cost:"$32,618",ch:"Ch.1"},
+          {icon:"🏠",title:"Self-Dealing Real Estate",desc:"Levin bought D-2 ($500K→$687K, 4 months, $187K profit) while sole bank signatory. Wiped $20K in HOA debt the day after purchase.",cost:"$207,103",ch:"Ch.2"},
+          {icon:"🔥",title:"Insurance Diversion",desc:"$74K insurance payout. Actual repair vendor: $4K. Alvic self-paid: $53K (72%). No permits filed. ECB violation open 8 years.",cost:"$53,471+",ch:"Ch.3"},
+          {icon:"👻",title:"Phantom Receivables",desc:"$38K billed to deceased owner. Wilmington Trust payments labeled by name but routed to dead man's account. CPA gap: $64K.",cost:"$38,187",ch:"Ch.4"},
+          {icon:"📊",title:"Structural Overcharging",desc:"Commercial floor pays 66% below proportional share ($15K/yr × 12 yrs). Insurance financed at 25%. 535% premium inflation.",cost:"$530,000+",ch:"Ch.5"},
+        ].map((m,i)=><div key={i} className="bg-slate-800/60 rounded-lg border border-slate-700 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-lg">{m.icon}</span>
+            <Badge t={m.ch} c="amber"/>
+          </div>
+          <h4 className="text-white font-bold text-sm">{m.title}</h4>
+          <p className="text-xs text-slate-400 mt-1">{m.desc}</p>
+          <p className="text-red-400 font-bold text-sm mt-2">{m.cost}</p>
+        </div>)}
+      </div>
+    </Sec>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+        <p className="text-xs text-slate-500 uppercase">Bank Balance (Dec 2025)</p>
+        <p className="text-3xl font-bold text-red-400 mt-1">$533</p>
+        <p className="text-xs text-slate-500 mt-1">After 12 years of $75K-$92K annual HOA revenue</p>
+      </div>
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+        <p className="text-xs text-slate-500 uppercase">Days Locked Out of Bank</p>
+        <p className="text-3xl font-bold text-amber-400 mt-1">25+</p>
+        <p className="text-xs text-slate-500 mt-1">Since March 2, 2026 fraud trigger</p>
+      </div>
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+        <p className="text-xs text-slate-500 uppercase">ECB Violation Open</p>
+        <p className="text-3xl font-bold text-orange-400 mt-1">8+ Years</p>
+        <p className="text-xs text-slate-500 mt-1">#35237084J — ADMIT/IN-VIOLATION since 2017</p>
+      </div>
+    </div>
+  </div>;
+}
+
+function TabPattern() {
+  return <div className="space-y-4">
+    <Sec title="The Pattern: Five Mechanisms, Seven Chapters" sub="Each chapter answers: what they did → how we know → what it cost → what it proves. Click to expand.">
+      <p className="text-sm text-slate-400 mb-4">The evidence is organized by <em>method</em>, not by unit. The units are case studies within each mechanism.</p>
+    </Sec>
+    <ChapterCard num={1} title="False Instruments to Eliminate Building Debts" cost="$32,618"
+      what="On January 26, 2018, a Release of Lien (CRFN 2018000043961) was filed certifying $29,118 in HOA arrears on Unit C-2 as 'PAID IN FULL.' Zero payments were ever received. Signed by Andrey Sokolov (delinquent board president). Notarized by Alina Levina (Levin's daughter, Alvic's GM/attorney). Same day: a forged Power of Attorney (CRFN 2018000044981) filed in Gabi Mizrahi's name — he never signed it, his name is misspelled, and the notary (Cindy Selevan) is from Nassau County."
+      proves="The same debtor (Nataliya Dobrer) owed ~$29K on BOTH C-2 and B-2. Alvic collected $36,667 on B-2 (title company watching) but filed a false release on C-2 (no oversight). When there was a witness, they collected. When there wasn't, they didn't. Dobrer appears as CO-GRANTEE on the C-2 deed alongside Bracha Tzuri LLC — she was a participant, not just a debtor. POA collection pattern spans 2014-2025 across multiple units."
+      evidence={[{crfn:"2018000043961",label:"False release"},{crfn:"2018000044981",label:"Forged POA"},{label:"Buildium C-2",type:"buildium"},{label:"Levina email 3/23/26",type:"email"}]}
+      screenshots={[{img:"./evidence/FALSE_LIEN_RELEASE.png",label:"False Lien Release"},{img:"./evidence/FORGED_POA.png",label:"Forged POA"},{img:"./evidence/ALINA_ADMISSION.png",label:"Levina Admission"},{img:"./evidence/C2_DEED_FIXLER.png",label:"C-2 Deed (Fixler)"}]}/>
+    <ChapterCard num={2} title="Self-Dealing Real Estate Transactions" cost="$207,103"
+      what="Seymon Levin purchased Unit D-2 for $499,999 (May 2019) while serving as sole bank signatory. The day after taking title, a 'credit as per agreement' entry for $9,403 wiped the remaining HOA debt. A prior credit of $10,698 had already been posted. Combined: $20,102 in unauthorized credits, no agreement produced. Four months later: sold for $687,000 ($187K profit, undisclosed). Simultaneously named as grantee on B-2 deed alongside AL VANDUZER LLC and Eli Fixler."
+      proves="A property manager who wipes $20K of his own HOA debt the day after buying a unit, then flips it for $187K without disclosure, is not making an accounting error. The 'credit as per agreement' entries are manufactured. No agreement exists because none was ever made."
+      evidence={[{label:"ACRIS D-2 chain",type:"acris"},{label:"Buildium pp.135-136",type:"buildium"},{label:"DOS #5394148 (AL VANDUZER)",href:"https://apps.dos.ny.gov/publicInquiry/"},{crfn:"2019061000014002",label:"B-2 deed"}]}
+      screenshots={[{img:"./evidence/D2_CREDIT_BUILDIUM.png",label:"D-2 'Credit as per agreement'"}]}/>
+    <ChapterCard num={3} title="Insurance Diversion" cost="$53,471+"
+      what="$74,047 in insurance proceeds for sprinkler claim. Actual repair vendor (Citywide Fire Sprinkler): $4,096 (6%). Alvic self-paid via Checks #520 + #521: $53,471 (72%). No DOB permits filed. ECB violation #35237084J remains open 8+ years. Insurance broker (North Star) reachable at slava@alvicmgm.com — sharing Alvic's email domain. Premiums inflated 535% ($11,250→$71,426)."
+      proves="Alvic admitted a violation, collected insurance, paid itself 72% for work never performed or permitted, and left the violation open for 8 years — causing $320K+ in excess premium costs. The insurance broker sharing Alvic's email domain raises questions about claim structuring."
+      evidence={[{label:"ECB #35237084J",href:"https://a810-bisweb.nyc.gov/bisweb/ECBQueryByNumberServlet?requestid=1&ecession=35237084J",type:"ecb"},{label:"Bank stmts Jul 2019",type:"bank"},{label:"DOB BIS/NOW (negative)",type:"ecb"},{label:"Buildium GL 2019",type:"buildium"}]}
+      screenshots={[{img:"./evidence/c520.jpeg",label:"Check #520 ($15,828)"},{img:"./evidence/c521.jpeg",label:"Check #521 ($37,643)"}]}/>
+  </div>;
+}
+
+function TabPatternCont() {
+  return <div className="space-y-3">
+    <ChapterCard num={4} title="Phantom Receivables and Ghost Billing" cost="$38,187"
+      what="Unit B-1 owner Zhabotinsky is deceased. Wilmington Trust took title Sep 2019. Alvic continued billing a dead man for years. 16 payments from Wilmington Trust were split — some posted correctly, others routed to the dead man's account. Check #1031593 is labeled 'WILMINGTON TRUST' in income records. They knew who was paying."
+      proves="Labeling a check 'WILMINGTON TRUST' and routing it to a dead man's account is deliberate. The phantom receivables inflated A/R to mask the building's true condition. CPA reported $17,113 A/R; Buildium showed $81,403 — a $64,290 gap confirming curated financials."
+      evidence={[{label:"Buildium B-1 stmt",type:"buildium"},{label:"income_stmt_detailed.xlsx",type:"buildium"},{label:"CPA compilations (Koyf)",type:"buildium"},{label:"Rodriguez email 3/23",type:"email"}]}/>
+    <ChapterCard num={5} title="Systematic Overcharging and Commercial Subsidy" cost="$530,000+"
+      what="Kamenetsky (HM1+HM1A, 17.94% common interest) pays $627/mo. Proportional share: ~$1,875/mo. Shortfall: $14,976/yr × 12 yrs = $179,712. Commercial floor gets a 66% discount no board resolution authorized. Sokolov controls ~30% voting bloc via Kamenetsky proxy — ensuring no correction. Insurance financed at 25% interest (Pavel finding, no board authorization). Water charges 3× normal in 2019. Elevator double-billing (Millennium vs Major)."
+      proves="Alvic controlled the assessment schedule, set the commercial rate, and never corrected it. The commercial voting bloc — controlled by Sokolov, who signed the false lien release — ensured no governance mechanism existed to challenge the arrangement. This is a 12-year wealth transfer administered by the managing agent."
+      evidence={[{label:"Declaration Art. V"},{crfn:"2008000064110",label:"2nd Amendment"},{label:"Buildium assessments",type:"buildium"},{label:"Premium history 2017-2025",type:"bank"}]}
+      screenshots={[{img:"./evidence/AMENDED_DECLARATION.png",label:"Amended Declaration"}]}/>
+    <ChapterCard num={6} title="The Foreclosure Cycle" cost="Equity destruction"
+      what="C-2: Dobrer delinquent → lien filed Dec 8, 2015 (same day as B-2 and D-2 — coordinated) → referee sale to same-day shell LLC for $15K → false release → sold for $535K. B-2: $10K Bargain and Sale deed (VOLUNTARY, not foreclosure) → resold for $475K. D-2: credits posted → Levin buys → $187K flip. B-1: deceased owner → ghost billing. Board was NAMED DEFENDANT in C-2 foreclosure (507031/2014) and chose not to appear."
+      proves="Alvic's non-collection was not random. The units where they failed to collect were the units where insiders purchased. The unit where they DID collect (B-2) was the one where a title company was watching. The foreclosure cycle is a feature — it generates below-market acquisition opportunities."
+      evidence={[{label:"ACRIS deed chains (C-2/D-2/B-1/B-2)",type:"acris"},{label:"Buildium delinquency",type:"buildium"},{label:"DOS: Bracha Tzuri #5163277",href:"https://apps.dos.ny.gov/publicInquiry/"},{label:"WebCivil 507031/2014"}]}/>
+    <ChapterCard num={7} title="Obstruction When Discovered" cost="$169,309 (gap)"
+      what="Election (Feb 24) → fictitious check #1029 ($3,600 to 'Joeseanna Harris') → bank lockout (Mar 2) → phantom signature card (never delivered) → laches defense → audit log refusal → management contract lock-in. Contract forensics: DocuSign status 'Sent' not 'Completed' (Levina never signed), backdated 39 days, Sokolov signed on mobile in 42 minutes. 2018 bank records permanently destroyed. 2019 fully reconciled — 2018 is the ONLY year with unexplained money AND destroyed records."
+      proves="The sequence is not unrelated events — it is a coordinated attempt to delay evidence access, maintain control of funds, and run out the clock. The Koyf CPA is connected to the obstruction chain via Check #1029."
+      evidence={[{label:"Bank .eml 3/2/26",type:"bank"},{label:"Email chain (39 msgs)",type:"email"},{label:"Levina email 3/23",type:"email"},{label:"DocuSign BD5D42D7"}]}
+      screenshots={[{img:"./evidence/LOCKOUT_EMAIL_image001.png",label:"Lockout Email"},{img:"./evidence/LOCKOUT_EMAIL_image002.png",label:"Lockout Email (cont)"}]}/>
+  </div>;
+}
+
+function TabCriminal() {
+  const charges = [
+    {ch:"1",mechanism:"False Instruments",statute:"PL §175.35 / §170.10",name:"Offering False Instrument 1st / Forgery 2nd",act:"Filing CRFN 2018000043961 certifying $29,118 'PAID IN FULL' when $0 received; forged POA CRFN 2018000044981"},
+    {ch:"2",mechanism:"Self-Dealing",statute:"PL §155.35 / §190.60",name:"Grand Larceny 3rd / Misapplication by Fiduciary",act:"$20,102 in unauthorized credits on unit purchased by sole bank signatory"},
+    {ch:"3",mechanism:"Insurance",statute:"PL §176.20 / §155.35",name:"Insurance Fraud 3rd / Grand Larceny 3rd",act:"Alvic self-paid $53,471 (72%) of $74K insurance payout; no permits, no work"},
+    {ch:"4",mechanism:"Phantom Billing",statute:"PL §155.35 / §190.60",name:"Grand Larceny 3rd / Misapplication",act:"$38,187 phantom charges on deceased owner; $64K CPA-Buildium gap"},
+    {ch:"5",mechanism:"Overcharging",statute:"Civil",name:"Declaration Breach / Fiduciary Duty",act:"12-year commercial subsidy + insurance/water inflation"},
+    {ch:"6",mechanism:"Foreclosure Cycle",statute:"DCL §273/276",name:"Fraudulent Conveyance",act:"Same-day shell LLC acquires liened unit for $15K; false release filed"},
+    {ch:"7",mechanism:"Obstruction",statute:"PL §215.40",name:"Tampering with Physical Evidence",act:"2018 bank records destroyed; audit logs refused; bank lockout manufactured"},
+    {ch:"ALL",mechanism:"Full Pattern",statute:"PL §190.65",name:"Scheme to Defraud 1st",act:"12-year, multi-mechanism, multi-victim pattern of false representations"},
+    {ch:"1",mechanism:"Levina Dual Role",statute:"Prof. Conduct R. 1.7",name:"Conflict of Interest",act:"Notarized false instruments while serving as Association's attorney"},
+  ];
+  return <div className="space-y-4">
+    <Sec title="Nine Independent Charges — Seven Criminal Statutes" sub="Each charge maps to a documented chapter in THE PATTERN">
+      <p className="text-sm text-slate-400 mb-4">The Scheme to Defraud charge (PL §190.65) captures the systematic nature: 12 years, five mechanisms, four units, fabricated CPA compilations, false lien releases, unauthorized credits, misrouted payments, and insurance diversion — all through a captive accounting system controlled by a single family with no oversight.</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm"><thead>
+          <tr className="border-b border-slate-700">
+            <th className="text-left py-2 px-3 text-slate-400 text-xs">CH</th>
+            <th className="text-left py-2 px-3 text-slate-400 text-xs">MECHANISM</th>
+            <th className="text-left py-2 px-3 text-slate-400 text-xs">STATUTE</th>
+            <th className="text-left py-2 px-3 text-slate-400 text-xs">KEY ACT</th>
+          </tr></thead><tbody>
+          {charges.map((c,i)=><tr key={i} className={`border-b border-slate-800 ${c.ch==="ALL"?"bg-red-950/30":""}`}>
+            <td className="py-2 px-3"><Badge t={c.ch==="ALL"?"★":"Ch."+c.ch} c={c.ch==="ALL"?"red":"amber"}/></td>
+            <td className="py-2 px-3 text-white font-medium">{c.mechanism}</td>
+            <td className="py-2 px-3 text-slate-300 font-mono text-xs">{c.statute}</td>
+            <td className="py-2 px-3 text-slate-400 text-xs">{c.act}</td>
+          </tr>)}
+        </tbody></table>
+      </div>
+    </Sec>
+    <Q>Feta Kryvokulska (Alvic accountant) admitted in writing March 9, 2026: "Previously, the Board had not requested approval for payments for your building, so we processed them independently at our discretion." Zero financial controls for the entire management period. Every irregularity occurred under these conditions.</Q>
+  </div>;
+}
+
+function TabDamages() {
+  const confirmed = [
+    {item:"C-2 false lien release ($0 received)",amt:29118,src:"CRFN 2018000043961"},
+    {item:"C-2 billing gap (7 months, no account)",amt:3500,src:"Buildium"},
+    {item:"D-2 unauthorized credits",amt:20102,src:"Buildium pp.135-136"},
+    {item:"B-1 phantom receivables (deceased owner)",amt:33881,src:"Buildium"},
+    {item:"B-1 misrouted Wilmington Trust payments",amt:4306,src:"income_stmt_detailed.xlsx"},
+    {item:"Insurance self-payment (Checks #520+521)",amt:53471,src:"Bank July 2019"},
+    {item:"ECB penalties unpaid (#35237084J)",amt:18750,src:"ECB/BIS portal"},
+    {item:"Fraudulent check #1029 (returned)",amt:3600,src:"Bank correspondence"},
+  ];
+  const estimated = [
+    {item:"Commercial subsidy (12yr × $14,976)",amt:179712,src:"Declaration vs Buildium"},
+    {item:"Insurance premium excess (8yr × ~$40K)",amt:320000,src:"Premium history"},
+    {item:"D-2 undisclosed flip profit",amt:187001,src:"ACRIS ($500K→$687K)"},
+    {item:"Water/sewer excess (2019: 3× normal)",amt:30000,src:"GL 2019"},
+    {item:"Lost reserves (12yr × $0)",amt:90000,src:"Industry 5-10% standard"},
+  ];
+  const pending = [
+    {item:"2018 Buildium-bank gap",amt:169309,src:"Requires bank subpoena"},
+    {item:"BSC invoice log",amt:null,src:"Buildium work orders"},
+    {item:"Buildium audit log",amt:null,src:"Unredacted system log"},
+    {item:"B-1 lien payoff (Wilmington Trust)",amt:null,src:"Closing docs subpoena"},
+  ];
+  const cTot=confirmed.reduce((s,r)=>s+r.amt,0);
+  const eTot=estimated.reduce((s,r)=>s+r.amt,0);
+  const pTot=pending.reduce((s,r)=>s+(r.amt||0),0);
+  function Tbl({rows,color,label,total}) {
+    const bg=color==="red"?"bg-red-950/20 border-red-900":color==="amber"?"bg-amber-950/20 border-amber-900":"bg-blue-950/20 border-blue-900";
+    return <div className={`rounded-xl border ${bg} overflow-hidden mb-4`}>
+      <div className="px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+        <span className="text-white font-bold text-sm">{label}</span>
+        <span className={`font-bold ${color==="red"?"text-red-400":color==="amber"?"text-amber-400":"text-blue-400"}`}>{fmt(total)}{color!=="red"?"+":""}</span>
+      </div>
+      <table className="w-full text-xs"><tbody>
+        {rows.map((r,i)=><tr key={i} className="border-b border-slate-800/50">
+          <td className="py-2 px-4 text-slate-300">{r.item}</td>
+          <td className="py-2 px-4 text-right text-white font-mono">{r.amt?fmt(r.amt):"TBD"}</td>
+          <td className="py-2 px-4 text-slate-500">{r.src}</td>
+        </tr>)}
+      </tbody></table>
+    </div>;
+  }
+  return <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <KPI label="Tier A: Confirmed" value={fmt(cTot)} sub="Documentary evidence, precise amounts" color="red"/>
+      <KPI label="Tier B: Estimated" value={fmt(eTot)+"+"} sub="Evidence of occurrence, amounts need audit" color="amber"/>
+      <KPI label="Tier C: Pending" value={fmt(pTot)+"+"} sub="Requires subpoena power" color="blue"/>
+    </div>
+    <Tbl rows={confirmed} color="red" label="A. Confirmed (zero estimates)" total={cTot}/>
+    <Tbl rows={estimated} color="amber" label="B. Estimated (requires forensic accounting)" total={eTot}/>
+    <Tbl rows={pending} color="blue" label="C. Pending Criminal Investigation" total={pTot}/>
+    <Sec title="The End-State" sub="After 12 years of $75K-$92K annual revenue">
+      <div className="text-center py-6">
+        <p className="text-6xl font-bold text-red-500">$533</p>
+        <p className="text-slate-400 mt-2">Bank balance, December 2025</p>
+        <p className="text-slate-500 text-sm mt-1">An 18-unit condominium should have $50K-$100K+ after 12 years of management</p>
+      </div>
+    </Sec>
+  </div>;
+}
+
+function TabPriorConduct() {
+  return <div className="space-y-4">
+    <Sec title="A. Levin v. Kitsis (Index 7690/09)" sub="16 years of shell company litigation on the same tax block as Bedshore">
+      <div className="space-y-3 text-sm text-slate-300">
+        <p><n>From 2009 to 2025, Seymon Levin prosecuted a fraud lawsuit through four shell companies — Googla Imports Inc., ABC Funding LLC, Mobile Food Venders LLC, and Progressive 1 Inc. — over a 12-unit condominium at 1824 East 17th Street, Brooklyn. Each partner owned a separate shell that "loaned" money to their own development company, manufacturing $632,500 in artificial secured claims against $3.4M in legitimate external debt.</n></p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-3">
+          <div className="bg-slate-800 rounded-lg p-3">
+            <p className="text-xs text-teal-400 font-bold mb-2">COURT RECORD</p>
+            <p className="text-xs text-slate-400"><strong className="text-white">2011 (82 AD3d 1051):</strong> 2d Dept upheld fraud allegations — "fraudulent scheme to deprive creditor rights"</p>
+            <p className="text-xs text-slate-400 mt-1"><strong className="text-white">2011:</strong> All confessions of judgment VACATED as "technically defective"</p>
+            <p className="text-xs text-slate-400 mt-1"><strong className="text-white">2024:</strong> Summary judgment DENIED. Defense accused Levin's entities of "self-dealing between themselves"</p>
+            <p className="text-xs text-slate-400 mt-1"><strong className="text-white">2025:</strong> DISMISSED — Levin failed to appear (2nd time). Abandoned rather than testify under oath.</p>
+          </div>
+          <div className="bg-red-950/30 rounded-lg p-3 border border-red-900">
+            <p className="text-xs text-red-400 font-bold mb-2">THE BEDSHORE CONNECTION</p>
+            <p className="text-xs text-slate-300"><n>Googla Imports Inc. was registered at 4750 Bedford Avenue — Block 8782. Bedshore is at 4766 Bedford Avenue — also Block 8782. Same tax block. Levin's shell company was steps from Bedshore BEFORE he became its manager.</n></p>
+            <p className="text-xs text-slate-400 mt-2">Replacement entity Googla Imports of NY (DOS #5147572) filed 2017 at 1245 Ave X, Brooklyn 11235 — same zip as Bedshore — while Levin was actively managing the building.</p>
+          </div>
+        </div>
+        <Q>The playbook is identical: multiple shell entities, self-dealing transactions, manufactured creditor claims, and a managing agent with exclusive financial control and no independent oversight.</Q>
+      </div>
+    </Sec>
+    <Sec title="B. HPD Actions — 4 Alvic Buildings Sued in 4 Consecutive Years" sub="Portfolio-wide neglect, not isolated to Bedshore">
+      <table className="w-full text-sm"><thead><tr className="border-b border-slate-700">
+        <th className="text-left py-2 px-3 text-slate-400 text-xs">CASE</th>
+        <th className="text-left py-2 px-3 text-slate-400 text-xs">FILED</th>
+        <th className="text-left py-2 px-3 text-slate-400 text-xs">BUILDING</th>
+        <th className="text-left py-2 px-3 text-slate-400 text-xs">COURT</th>
+      </tr></thead><tbody>
+        {[
+          ["LT-301491-21/KI","Mar 2021","2014 West 1st Street LLC","Kings L&T"],
+          ["LT-323828-22/KI","Oct 2022","Marion Park Condo II","Kings L&T"],
+          ["LT-321311-23/NY","Nov 2023","Ivy League Apt Corp","New York L&T"],
+          ["LT-310881-24/KI","Mar 2024","193 Neptune LLC (104 Ave O)","Kings L&T"],
+        ].map((r,i)=><tr key={i} className="border-b border-slate-800">
+          {r.map((c,j)=><td key={j} className={`py-2 px-3 ${j===2?"text-white font-medium":"text-slate-400"} text-xs`}>{c}</td>)}
+        </tr>)}
+      </tbody></table>
+      <p className="text-xs text-slate-500 mt-3">193 Neptune LLC is registered to 104 Avenue O — Alvic's office address. While these buildings were being sued for habitability failures, Alvic was pocketing $53K in insurance money at Bedshore.</p>
+    </Sec>
+  </div>;
+}
+
+function TabPriorCont() {
+  return <div className="space-y-4">
+    <Sec title="C. The Sponsor: Boris Motovich" sub="Convicted federal felon who signed the Bedshore Declaration">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2 text-sm text-slate-300">
+          <p><n>Boris Motovich signed the Bedshore Declaration on behalf of Bedshore Realty LLC. Convicted July 2024 (EDNY) of bank fraud, money laundering, aggravated identity theft. $55M illegal check-cashing scheme through Midwood Lumber (1169 Coney Island Ave). Sentenced Nov 2025: 15 years federal. Forfeiture: ~$38M.</n></p>
+          <p>MO: created shell companies, opened accounts in other people's names, forged signatures, bribed bankers — indistinguishable from patterns at Bedshore.</p>
+          <p><n>Harold Gruber (offering plan attorney) was PERMANENTLY BANNED by NY AG in 2014 for fraudulent filings.</n></p>
+        </div>
+        <div className="space-y-2 text-sm text-slate-300">
+          <p><n>Alexander Motovich (likely son) has purchased 9+ Brooklyn condo units since 2018, with POAs filed same day as deeds. At least two — 2158 Ocean Ave and 380 Kings Hwy — are in Alvic-managed buildings (confirmed via HPD).</n></p>
+          <p><n>Boris owned Bedshore Lots 1105+1123 (Block 8782) from 2011-2016 ($300K→$750K). He was an active unit owner during Alvic's management.</n></p>
+        </div>
+      </div>
+    </Sec>
+    <Sec title="D. The Network Is Real: 15 USC § 3607" sub="The management contract is voidable">
+      <div className="bg-red-950/30 border border-red-900 rounded-lg p-4 text-sm text-slate-300 space-y-2">
+        <p><strong className="text-red-400">1. Sponsor-manager link:</strong> <n>Motovich (sponsor) selected Alvic. Levin (Alvic principal) operated shell companies on the same tax block before becoming manager.</n></p>
+        <p><strong className="text-red-400">2. Governance capture:</strong> <n>The board that signed the contract included Sokolov (false lien release signatory) and was controlled by the Kamenetsky proxy bloc (beneficiary of the commercial subsidy).</n></p>
+        <p><strong className="text-red-400">3. Timing:</strong> Contract created Feb 9, 2026 — 15 days before election. Backdated to Jan 1. Sokolov signed on mobile in 42 minutes. Levina never countersigned. No prior year contracts produced.</p>
+        <p className="text-amber-300 font-bold mt-3">The Board is currently captive to the entity it is investigating.</p>
+      </div>
+    </Sec>
+  </div>;
+}
+
+function TabNetwork() {
+  const [selNode,setSelNode]=useState(null);
+  const [selEdge,setSelEdge]=useState(null);
+  const nodeMap=useMemo(()=>Object.fromEntries(networkNodes.map(n=>[n.id,n])),[]);
+  const faceIds=["levin","levina","motovich","gruber","northstar","chen"];
+  const nodeEdges=useMemo(()=>selNode?networkEdges.filter(e=>e.from===selNode||e.to===selNode):[],[selNode]);
+  return <div className="space-y-4">
+    <Sec title="Entity Network Map" sub="Click nodes to see connections. Click lines to see relationship details.">
+      <svg viewBox="0 0 880 560" className="w-full bg-slate-900/50 rounded-xl border border-slate-700/50" style={{minHeight:400}} onClick={()=>{setSelNode(null);setSelEdge(null);}}>
+        <defs>{faceIds.map(id=>{const n=nodeMap[id];return n?<clipPath key={id} id={`clip-${id}`}><circle cx={n.x} cy={n.y} r={n.r-2}/></clipPath>:null;})}</defs>
+        {networkEdges.map((e,i)=>{const from=nodeMap[e.from],to=nodeMap[e.to];if(!from||!to)return null;const hl=selNode&&(e.from===selNode||e.to===selNode);const sel=selEdge===i;return <g key={i}><line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="transparent" strokeWidth={14} style={{cursor:"pointer"}} onClick={(ev)=>{ev.stopPropagation();setSelEdge(selEdge===i?null:i);setSelNode(null);}}/><line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={sel?"#f59e0b":hl?"#60a5fa":"#334155"} strokeWidth={sel?2.5:hl?2:1} pointerEvents="none"/></g>;})}
+        {networkNodes.map(n=>{const c=roleColors[n.tier]||roleColors.institutional;const isSel=selNode===n.id;const hasFace=faceIds.includes(n.id);return <g key={n.id} style={{cursor:"pointer"}} onClick={(ev)=>{ev.stopPropagation();setSelNode(selNode===n.id?null:n.id);setSelEdge(null);}}>
+          {isSel&&<circle cx={n.x} cy={n.y} r={n.r+6} fill="none" stroke={c.text} strokeWidth={2} opacity={0.5}><animate attributeName="r" from={n.r+4} to={n.r+10} dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" from={0.6} to={0} dur="1.5s" repeatCount="indefinite"/></circle>}
+          <circle cx={n.x} cy={n.y} r={n.r} fill={isSel?c.bg:"#1e293b"} stroke={c.bg} strokeWidth={isSel?3:2}/>
+          {hasFace&&<image href={`./faces/${n.id}.png`} x={n.x-(n.r-2)} y={n.y-(n.r-2)} width={(n.r-2)*2} height={(n.r-2)*2} clipPath={`url(#clip-${n.id})`} onError={(e)=>{e.target.style.display='none'}}/>}
+          {!hasFace&&<text x={n.x} y={n.y+1} textAnchor="middle" dominantBaseline="central" fill={c.text} fontSize={n.r*0.7} fontWeight="bold">{n.name.charAt(0)}</text>}
+          <text x={n.x} y={n.y+n.r+12} textAnchor="middle" fill={c.text} fontSize="9" fontWeight="600">{n.name}</text>
+          <text x={n.x} y={n.y+n.r+22} textAnchor="middle" fill="#94a3b8" fontSize="7">{n.sub}</text>
+        </g>;})}
+        <g transform="translate(10,10)">{[{label:"Sponsor",c:"#7c3aed"},{label:"Management",c:"#dc2626"},{label:"Intermediary",c:"#ea580c"},{label:"Acquisition",c:"#d97706"},{label:"Prior Conduct",c:"#0f766e"}].map((item,i)=><g key={i} transform={`translate(0,${i*18})`}><circle cx={6} cy={6} r={5} fill={item.c}/><text x={16} y={10} fill="#94a3b8" fontSize="9">{item.label}</text></g>)}</g>
+      </svg>
+    </Sec>
+    {selNode&&<div className="bg-blue-950/30 border border-blue-800/50 rounded-xl p-4 mb-4"><p className="text-blue-400 font-bold mb-2">Connections: {nodeMap[selNode]?.name}</p>{nodeEdges.map((e,i)=>{const other=e.from===selNode?nodeMap[e.to]:nodeMap[e.from];return <div key={i} className="text-sm text-slate-300 mb-2 border-l-2 border-blue-700 pl-3"><Name>{other?.name}: {e.desc}</Name></div>;})}</div>}
+    {selEdge!==null&&<div className="bg-amber-950/30 border border-amber-800/50 rounded-xl p-4 mb-4"><p className="text-amber-400 font-bold mb-1">{nodeMap[networkEdges[selEdge].from]?.name} ↔ {nodeMap[networkEdges[selEdge].to]?.name}</p><p className="text-sm text-slate-300"><Name>{networkEdges[selEdge].desc}</Name></p></div>}
+    <Sec title="Geographic Clustering" sub="All entities within a 15-minute driving radius in southern Brooklyn">
+      <div className="space-y-2">
+        {[
+          {addr:"104 Avenue O",ents:"Alvic Property Management (Levin family)",role:"Managing Agent",c:"red"},
+          {addr:"1507 Avenue M",ents:"Fixler, AL VANDUZER LLC, Elite Equity Holdings, Suslovich & Klein",role:"Intermediary",c:"orange"},
+          {addr:"2349 East 18th St",ents:"Adar Tishrei LLC, Lefferts Real Estate Enterprises LLC",role:"Acquisition",c:"amber"},
+          {addr:"2516 Avenue W",ents:"Bracha Tzuri (Chen), Adar Enterprises (Bloom/Konikov)",role:"Buyers",c:"amber"},
+          {addr:"113 Avenue I",ents:"Adimia Holding LLC (Taubenblat)",role:"Financing",c:"purple"},
+          {addr:"4750 Bedford Ave",ents:"Googla Imports Inc. (Levin) — Block 8782 = Bedshore's block",role:"Shell",c:"teal"},
+        ].map((e,i)=><div key={i} className="flex items-start gap-3 py-2 border-b border-slate-800 last:border-0">
+          <Badge t={e.role} c={e.c}/><div><p className="text-white text-sm font-medium">{e.addr}</p><p className="text-xs text-slate-400"><Name>{e.ents}</Name></p></div>
+        </div>)}
+      </div>
+    </Sec>
+    <Sec title="DOS Filing Patterns" sub="4 of 6 entities PAST DUE — use-once-and-abandon">
+      <table className="w-full text-xs"><thead><tr className="border-b border-slate-700"><th className="text-left py-2 px-2 text-slate-400">ENTITY</th><th className="text-left py-2 px-2 text-slate-400">DOS #</th><th className="text-left py-2 px-2 text-slate-400">FILED</th><th className="text-left py-2 px-2 text-slate-400">STATUS</th><th className="text-left py-2 px-2 text-slate-400">NOTE</th></tr></thead><tbody>
+        {[{n:"AL VANDUZER LLC",id:"5394148",f:"08/15/2018",s:"PAST DUE",note:"Filed 2mo before forged POA"},{n:"ADAR TISHREI LLC",id:"5414275",f:"09/21/2018",s:"PAST DUE",note:"Same addr as Lefferts RE"},{n:"ELITE EQUITY HOLDINGS",id:"3970724",f:"07/08/2010",s:"CURRENT",note:"16yr entity, 50+ ACRIS docs"},{n:"BRACHA TZURI ENT.",id:"5163277",f:"06/29/2017",s:"PAST DUE",note:"Filed SAME DAY as C-2 deed"},{n:"LEFFERTS RE ENT.",id:"4744926",f:"04/20/2015",s:"PAST DUE",note:"Same filing agent as AL VANDUZER"},{n:"GOOGLA IMPORTS OF NY",id:"5147572",f:"06/02/2017",s:"PAST DUE",note:"1245 Ave X — same zip as Bedshore"}
+        ].map((d,i)=><tr key={i} className="border-b border-slate-800"><td className="py-2 px-2 text-white font-medium">{d.n}</td><td className="py-2 px-2 text-slate-400 font-mono">{d.id}</td><td className="py-2 px-2 text-slate-400">{d.f}</td><td className="py-2 px-2"><Badge t={d.s} c={d.s==="CURRENT"?"green":"red"}/></td><td className="py-2 px-2 text-slate-500">{d.note}</td></tr>)}
+      </tbody></table>
+    </Sec>
+  </div>;
+}
+
+function TabTimeline() {
+  const events = [
+    {yr:"2005",ev:"Declaration filed by Motovich/Bedshore Realty LLC. Gruber listed as C/O.",c:"purple"},
+    {yr:"2006",ev:"Dobrer buys C-2 ($580K) and B-2 ($529K) on WaMu subprime ARMs. ~88% LTV.",c:"slate"},
+    {yr:"2007",ev:"Googla Imports Inc. (Levin) registered at 4750 Bedford Ave — Block 8782.",c:"teal"},
+    {yr:"2009",ev:"Levin v. Kitsis (Index 7690/09) filed. 4 shell companies, fraud allegations.",c:"teal",href:"https://iapps.courts.state.ny.us/nyscef/DocumentList?docketId=c9hKSncsngJn3mtS/spTYg=="},
+    {yr:"2010",ev:"NGM Holdings acquires HM1A from Motovich for $10. Kamenetsky controls commercial floor.",c:"purple"},
+    {yr:"2011",ev:"2d Dept upholds fraud in Kitsis: 'fraudulent scheme to deprive creditor rights.' Both Dobrer ARMs reset.",c:"teal"},
+    {yr:"~2015",ev:"Alvic/Levin becomes managing agent. Levin = sole bank signatory.",c:"red"},
+    {yr:"Dec 2015",ev:"Liens filed on C-2, B-2, AND D-2 — all same date. Coordinated.",c:"red"},
+    {yr:"Apr 2017",ev:"B-2 sold via Bargain and Sale deed for $10,000 (voluntary transfer, not foreclosure).",c:"orange"},
+    {yr:"Jun 2017",ev:"C-2 referee sale: Bracha Tzuri LLC (incorporated SAME DAY) buys for $15,000. Dobrer = co-grantee.",c:"orange"},
+    {yr:"Nov 2017",ev:"ECB violation #35237084J admitted. 17-page lien filing (predicate for forgery).",c:"red",href:"https://a810-bisweb.nyc.gov/bisweb/ECBQueryByNumberServlet?requestid=1&ecession=35237084J"},
+    {yr:"Jan 2018",ev:"FORGED POA (CRFN 2018000044981) + FALSE LIEN RELEASE (CRFN 2018000043961) filed.",c:"red"},
+    {yr:"2018",ev:"$169,309 gap: Buildium $244K vs bank $75K. Bank records permanently destroyed.",c:"red"},
+    {yr:"May 2019",ev:"Levin buys D-2 ($500K). Credits $20K in HOA the next day. B-2 deed: Levin+Fixler+AL VANDUZER.",c:"red"},
+    {yr:"Jul 2019",ev:"$74K insurance payout. Alvic self-pays $53,471 (72%). Repair vendor gets $4K.",c:"red"},
+    {yr:"Sep 2019",ev:"Levin sells D-2 for $687K ($187K profit, 4 months, undisclosed).",c:"red"},
+    {yr:"2021-24",ev:"HPD sues 4 Alvic buildings for habitability failures (one per year, including Manhattan).",c:"orange"},
+    {yr:"Jul 2024",ev:"Boris Motovich CONVICTED (EDNY): bank fraud, money laundering, identity theft.",c:"purple"},
+    {yr:"Jan 2024",ev:"Kitsis: summary judgment DENIED. Court notes 'self-dealing between themselves.'",c:"teal"},
+    {yr:"Jun 2025",ev:"Levin v. Kitsis DISMISSED — Levin fails to appear for trial (2nd no-show in 16 years).",c:"teal"},
+    {yr:"Nov 2025",ev:"Motovich sentenced: 15 years federal, $38M forfeiture.",c:"purple"},
+    {yr:"Feb 9, 2026",ev:"Management contract created in DocuSign. Backdated to Jan 1. Sokolov signs on mobile in 42 min. Levina never signs.",c:"red"},
+    {yr:"Feb 24, 2026",ev:"New Board elected. First contested election in building history.",c:"green"},
+    {yr:"Mar 2, 2026",ev:"Check #1029 ($3,600 to 'Joeseanna Harris') → bank lockout triggered. 25+ days locked out.",c:"red"},
+    {yr:"Mar 23, 2026",ev:"Levina invokes laches, admits she can't explain the instrument she notarized.",c:"amber"},
+  ];
+  return <div className="space-y-4">
+    <Sec title="Twelve-Year Timeline" sub="Key events in chronological order">
+      <div className="space-y-0">
+        {events.map((e,i)=><div key={i} className="flex gap-4 py-3 border-b border-slate-800 last:border-0">
+          <div className="w-24 flex-shrink-0 text-right"><span className="text-xs font-bold text-slate-400">{e.yr}</span></div>
+          <div className="w-1 flex-shrink-0 relative"><div className={`w-2 h-2 rounded-full ${e.c==="red"?"bg-red-500":e.c==="purple"?"bg-purple-500":e.c==="orange"?"bg-orange-500":e.c==="teal"?"bg-teal-500":e.c==="green"?"bg-green-500":"bg-slate-500"} absolute top-1 -left-0.5`}/><div className="w-px h-full bg-slate-700 ml-0.5"/></div>
+          <p className="text-sm text-slate-300 flex-1">{e.href?<a href={e.href} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 underline decoration-slate-600 hover:decoration-blue-400"><n>{e.ev}</n> ↗</a>:<n>{e.ev}</n>}</p>
+        </div>)}
+      </div>
+    </Sec>
+  </div>;
+}
+
+function ChartTip({active,payload,label}) {
+  if (!active||!payload||!payload.length) return null;
+  return <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 text-xs">
+    <p className="text-white font-bold mb-1">{label}</p>
+    {payload.map((p,i)=><p key={i} style={{color:p.color}}>{p.name}: {typeof p.value==="number"?fmt(p.value):p.value}</p>)}
+  </div>;
+}
+function TabPL() {
+  const {ComposedChart,Line,Area} = Recharts;
+  const [selYear,setSelYear]=useState(null);
+  const insOver = insuranceData.reduce((s,d)=>s+(d.bedshore-d.comp),0);
+  const selData = selYear ? spendingData.find(d=>d.year===selYear) : null;
+  const categories = ["Insurance","Water/Sewer","Management Fee","Elevator","Repairs/Maintenance","Electric","Professional Fees"];
+  const catColors = {"Insurance":"#dc2626","Water/Sewer":"#3b82f6","Management Fee":"#f59e0b","Elevator":"#8b5cf6","Repairs/Maintenance":"#10b981","Electric":"#06b6d4","Professional Fees":"#ec4899"};
+  return <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <KPI label="Excess Insurance (2017-2025)" value={fmt(insOver)} sub="vs market comparable" color="red"/>
+      <KPI label="2019 Water/Sewer" value="$48,352" sub="~3\u00d7 normal annual amount" color="amber"/>
+      <KPI label="Cumulative Net Loss (2020-25)" value={fmt(bankData.filter(d=>parseInt(d.year)>=2020).reduce((s,d)=>s+d.net,0))} sub="Expenses exceed revenue every year" color="red"/>
+    </div>
+    <Sec title="Revenue vs Expenses \u2014 Year over Year" sub="Click any bar to expand detailed line items">
+      <ResponsiveContainer width="100%" height={300}><BarChart data={spendingData} onClick={(e)=>{if(e&&e.activeLabel) setSelYear(selYear===e.activeLabel?null:e.activeLabel);}}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#334155"/><XAxis dataKey="year" stroke="#94a3b8" fontSize={11}/><YAxis stroke="#94a3b8" fontSize={10} tickFormatter={v=>`$${(v/1000).toFixed(0)}K`}/><Tooltip content={<ChartTip/>}/>
+        <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[3,3,0,0]}>{spendingData.map((d,i)=><Cell key={i} fill={d.year===selYear?"#60a5fa":"#3b82f6"} stroke={d.year===selYear?"#93c5fd":"none"} strokeWidth={2}/>)}</Bar>
+        <Bar dataKey="expenses" name="Expenses" fill="#dc2626" radius={[3,3,0,0]}>{spendingData.map((d,i)=><Cell key={i} fill={d.year===selYear?"#f87171":d.expenses>d.revenue?"#dc2626":"#64748b"} stroke={d.year===selYear?"#fca5a5":"none"} strokeWidth={2}/>)}</Bar>
+      </BarChart></ResponsiveContainer>
+      {selData&&(selData.rev_detail.length>0||selData.exp_detail.length>0)?<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-700">
+        <div className="bg-blue-950/20 border border-blue-900 rounded-lg p-3">
+          <p className="text-blue-400 font-bold text-sm mb-2">Revenue Breakdown \u2014 {selData.year} ({fmt(selData.revenue)})</p>
+          {selData.rev_detail.length>0?<div className="space-y-1">{selData.rev_detail.map((r,i)=><div key={i} className="flex justify-between text-xs"><span className="text-slate-300">{r.item}</span><span className="text-blue-400 font-mono">{fmt(r.amt)}</span></div>)}</div>:<p className="text-xs text-slate-500 italic">Detailed breakdown not available for this year</p>}
+        </div>
+        <div className="bg-red-950/20 border border-red-900 rounded-lg p-3">
+          <p className="text-red-400 font-bold text-sm mb-2">Expense Breakdown \u2014 {selData.year} ({fmt(selData.expenses)})</p>
+          {selData.exp_detail.length>0?<div className="space-y-1">{selData.exp_detail.sort((a,b)=>b.amt-a.amt).map((r,i)=><div key={i} className="flex justify-between text-xs items-center"><span className="text-slate-300">{r.item}</span><div className="flex items-center gap-2"><div className="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{width:Math.min(100,r.amt/selData.expenses*100*3)+'%'}}/></div><span className="text-red-400 font-mono w-16 text-right">{fmt(r.amt)}</span></div></div>)}</div>:<p className="text-xs text-slate-500 italic">Detailed breakdown not available for this year</p>}
+        </div>
+      </div>:selYear?<p className="text-xs text-slate-500 italic mt-2 text-center">Detailed breakdown not available for {selYear}. Data available for 2017, 2018, 2019, and 2024.</p>:null}
+    </Sec>
+    <Sec title="Spending by Category \u2014 Key Years" sub="Where the money went (years with detailed data)">
+      <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="border-b border-slate-700"><th className="text-left py-2 px-2 text-slate-400">Category</th>
+        {["2017","2018","2019","2024"].map(y=><th key={y} className="text-right py-2 px-2 text-slate-400">{y}</th>)}
+        <th className="text-right py-2 px-2 text-slate-400">Flag</th>
+      </tr></thead><tbody>
+        {categories.map((cat,i)=>{
+          const vals=["2017","2018","2019","2024"].map(y=>{const sd=spendingData.find(d=>d.year===y);const item=sd?sd.exp_detail.find(e=>e.item.includes(cat.split("/")[0])):null;return item?item.amt:null;});
+          const maxVal=Math.max(...vals.filter(v=>v!==null));
+          const flag=cat==="Insurance"?"\u26a0\ufe0f 535% increase":cat==="Water/Sewer"?"\u26a0\ufe0f 3\u00d7 spike 2019":null;
+          return <tr key={i} className="border-b border-slate-800 hover:bg-slate-800/30"><td className="py-2 px-2 text-white font-medium"><span className="inline-block w-2 h-2 rounded-full mr-2" style={{background:catColors[cat]||"#64748b"}}/>{cat}</td>
+            {vals.map((v,j)=><td key={j} className={`py-2 px-2 text-right font-mono ${v===maxVal&&maxVal>0?"text-red-400 font-bold":"text-slate-400"}`}>{v?fmt(v):"\u2014"}</td>)}
+            <td className="py-2 px-2 text-right text-amber-400 text-xs">{flag||""}</td>
+          </tr>;
+        })}
+        <tr className="border-t-2 border-slate-600"><td className="py-2 px-2 text-white font-bold">TOTAL EXPENSES</td>
+          {["2017","2018","2019","2024"].map(y=>{const sd=spendingData.find(d=>d.year===y);return <td key={y} className="py-2 px-2 text-right text-white font-bold font-mono">{sd?fmt(sd.expenses):"\u2014"}</td>;})}
+          <td></td>
+        </tr>
+      </tbody></table></div>
+      <Q>2019 is the outlier year: $53K Alvic self-pay + $48K water anomaly = $101K in two line items. Remove those and 2019 expenses are normal ($65K). The spike was manufactured.</Q>
+    </Sec>
+    <Sec title="Insurance Premium Trend" sub="Bedshore (red area) vs Market Comparable (dashed blue). 535% increase.">
+      <ResponsiveContainer width="100%" height={260}><ComposedChart data={insuranceData}><CartesianGrid strokeDasharray="3 3" stroke="#334155"/><XAxis dataKey="year" stroke="#94a3b8" fontSize={11}/><YAxis stroke="#94a3b8" fontSize={10} tickFormatter={v=>`$${(v/1000).toFixed(0)}K`}/><Tooltip content={<ChartTip/>}/><Area dataKey="bedshore" name="Bedshore" fill="#dc262640" stroke="#dc2626" strokeWidth={2}/><Line dataKey="comp" name="Market Comp" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={false}/></ComposedChart></ResponsiveContainer>
+      <p className="text-xs text-red-400 mt-2"><strong>{fmt(insOver)}</strong> in excess premiums. Open ECB violation is the primary driver.</p>
+    </Sec>
+    <Sec title="Net Cash Flow by Year" sub="Negative every year since 2020">
+      <div className="grid grid-cols-3 md:grid-cols-9 gap-2">{bankData.map((d,i)=><div key={i} className={`rounded-lg p-2 text-center ${d.net>=0?"bg-green-950/30 border border-green-900":"bg-red-950/30 border border-red-900"}`}><p className="text-xs text-slate-400">{d.year}</p><p className={`text-sm font-bold ${d.net>=0?"text-green-400":"text-red-400"}`}>{fmt(d.net)}</p></div>)}</div>
+    </Sec>
+  </div>;
+}
+
+function App() {
+  const [tab,setTab]=useState(0);
+  const tabs=[
+    {label:"THESIS",component:TabThesis},
+    {label:"THE PATTERN",component:()=><><TabPattern/><TabPatternCont/></>},
+    {label:"CRIMINAL",component:TabCriminal},
+    {label:"DAMAGES",component:TabDamages},
+    {label:"PRIOR CONDUCT",component:()=><><TabPriorConduct/><TabPriorCont/></>},
+    {label:"NETWORK",component:TabNetwork},
+    {label:"TIMELINE",component:TabTimeline},
+    {label:"P/L",component:TabPL},
+  ];
+  const TabComp=tabs[tab].component;
+  return <div className="min-h-screen">
+    <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800 px-6 py-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-xl font-bold text-white">Bedshore Condominium</h1>
+          <div className="flex gap-2">
+            <Badge t="$166K CONFIRMED" c="red"/>
+            <Badge t="$187K+ SELF-DEALING" c="orange"/>
+            <Badge t="$53K INSURANCE" c="amber"/>
+            <Badge t="$1.1M+ COMBINED" c="red"/>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">Forensic Investigation Dashboard · v6.0 · AG Referral Package · March 2026 · 30 findings, zero estimates in confirmed tier</p>
+      </div>
+    </div>
+    <div className="max-w-7xl mx-auto px-6 pt-3">
+      <div className="tab-bar gap-1 mb-4">
+        {tabs.map((t,i)=><button key={i} onClick={()=>setTab(i)}
+          className={`px-4 py-2 text-xs font-bold rounded-t-lg whitespace-nowrap transition-colors ${i===tab?"bg-slate-800 text-white border-t-2 border-amber-500":"text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"}`}>{t.label}</button>)}
+      </div>
+      <TabComp/>
+      <div className="text-center py-6 mt-4 border-t border-slate-800">
+        <div className="flex flex-wrap justify-center gap-3 mb-3">
+          <a href="https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000" target="_blank" className="text-xs text-blue-500 hover:text-blue-400 underline">ACRIS Block 8782</a>
+          <a href="https://iapps.courts.state.ny.us/nyscef/DocumentList?docketId=c9hKSncsngJn3mtS/spTYg==" target="_blank" className="text-xs text-teal-500 hover:text-teal-400 underline">Levin v Kitsis (NYSCEF)</a>
+          <a href="https://a810-bisweb.nyc.gov/bisweb/ECBQueryByNumberServlet?requestid=1&ecession=35237084J" target="_blank" className="text-xs text-orange-500 hover:text-orange-400 underline">ECB #35237084J</a>
+          <a href="https://apps.dos.ny.gov/publicInquiry/" target="_blank" className="text-xs text-purple-500 hover:text-purple-400 underline">NY DOS Entity Search</a>
+        </div>
+        <p className="text-xs text-slate-600">Prepared by Lewis Mizrahi, Treasurer · Bedshore Condominium Board of Managers · v6.0 · March 2026</p>
+        <p className="text-xs text-slate-700 mt-1">Sources: ACRIS, NY DOS, NYSCEF, ECB/BIS, Buildium, Banc of California, email correspondence</p>
+      </div>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
