@@ -486,6 +486,88 @@ function TabNetwork() {
   </div>;
 }
 
+function TabCommercial() {
+  const yearRows = [
+    {yr:"2014",paid:627,proper:1875,gap:1248},
+    {yr:"2015",paid:627,proper:1875,gap:1248},
+    {yr:"2016",paid:627,proper:1875,gap:1248},
+    {yr:"2017",paid:627,proper:1875,gap:1248},
+    {yr:"2018",paid:627,proper:1875,gap:1248},
+    {yr:"2019",paid:627,proper:1875,gap:1248},
+    {yr:"2020",paid:627,proper:1875,gap:1248},
+    {yr:"2021",paid:627,proper:1875,gap:1248},
+    {yr:"2022",paid:627,proper:1875,gap:1248},
+    {yr:"2023",paid:627,proper:1875,gap:1248},
+    {yr:"2024",paid:627,proper:1875,gap:1248},
+    {yr:"2025",paid:627,proper:1875,gap:1248},
+  ];
+  const totalGap = yearRows.reduce((s,r)=>s+(r.gap*12),0);
+  return <div className="space-y-4">
+    <div className="bg-teal-950/50 border border-teal-700 rounded-xl p-5">
+      <p className="text-teal-400 text-xs font-bold uppercase tracking-widest mb-2">Commercial Floor — 12-Year Underpayment</p>
+      <div className="grid grid-cols-3 gap-4 mt-3">
+        <div className="text-center"><div className="text-3xl font-black text-teal-300">${totalGap.toLocaleString()}</div><div className="text-xs text-slate-400 mt-1">Total building shortfall (12 yrs)</div></div>
+        <div className="text-center"><div className="text-3xl font-black text-red-400">66%</div><div className="text-xs text-slate-400 mt-1">Discount below proportional rate</div></div>
+        <div className="text-center"><div className="text-3xl font-black text-amber-400">$14,976</div><div className="text-xs text-slate-400 mt-1">Annual shortfall to building</div></div>
+      </div>
+      <div className="mt-4 p-3 bg-slate-900/60 rounded-lg border border-slate-700">
+        <p className="text-xs text-slate-300"><strong className="text-white">How the number is calculated:</strong> Kamenetsky holds 17.94% common interest (HM1+HM1A combined). Per Declaration Art. V, common charges are assessed proportionally. At ~$10,450/mo total building revenue, HM1+HM1A's proportional share is ~$1,875/mo. Kamenetsky pays $627/mo. Gap: $1,248/mo × 12 = <strong className="text-teal-300">$14,976/yr shortfall to the building</strong>. This is the aggregate total — NOT a per-residential-unit figure. Each residential unit bears a proportional share of this burden (~$997/yr for a typical ~4.7% interest unit, ~$11,966 over 12 years).</p>
+      </div>
+    </div>
+    <Sec title="Why It's $627 and Not $1,875">
+      <div className="space-y-3 text-sm text-slate-300">
+        <p>Alvic set the commercial floor assessment at $627/mo when they took over management (~2015). No board resolution authorized this rate. The Declaration (Art. V) requires charges proportional to percentage interest — which for 17.94% on a ~$10,450/mo budget comes to ~$1,875/mo. Alvic simply never applied the formula.</p>
+        <p>The arrangement persisted for 12+ years because <strong className="text-amber-300">the people who benefited from it controlled the governance</strong>. Kamenetsky (HM1+HM1A, 17.94%) proxied 100% of his votes to Sokolov. Combined with Sokolov's own HM2 (11.58%), that bloc controls ~29.52% of votes — the largest single voting bloc in the building. Sokolov also signed the false lien release on C-2. The subsidy and the fraud are administered by the same people.</p>
+        <div className="bg-red-950/30 border border-red-800/40 rounded-lg p-3"><p><strong className="text-red-400">Not passive.</strong> Kamenetsky pays $34.98 per percentage point. Every other owner pays ~$104/percentage point. He attends no meetings, files no objections, never questions the books. The silence and the discount arrived together and have coexisted for over a decade.</p></div>
+      </div>
+    </Sec>
+    <Sec title="Year-by-Year Shortfall" sub="What Kamenetsky paid vs what he owed">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b border-slate-700"><th className="text-left py-2 text-slate-400">Year</th><th className="text-right py-2 text-slate-400">Paid/mo</th><th className="text-right py-2 text-slate-400">Owed/mo</th><th className="text-right py-2 text-slate-400">Monthly Gap</th><th className="text-right py-2 text-slate-400">Annual Gap</th></tr></thead>
+          <tbody>
+            {yearRows.map((r,i)=><tr key={i} className="border-b border-slate-800 hover:bg-slate-800/30">
+              <td className="py-1.5 text-white font-mono">{r.yr}</td>
+              <td className="py-1.5 text-right text-red-400">${r.paid}</td>
+              <td className="py-1.5 text-right text-slate-300">~${r.proper}</td>
+              <td className="py-1.5 text-right text-amber-400">-${r.gap}</td>
+              <td className="py-1.5 text-right text-red-400 font-semibold">-${(r.gap*12).toLocaleString()}</td>
+            </tr>)}
+            <tr className="border-t-2 border-teal-700 bg-teal-950/20"><td className="py-2 text-teal-300 font-black" colSpan={4}>12-YEAR TOTAL SHORTFALL TO BUILDING</td><td className="py-2 text-right text-teal-300 font-black text-lg">-${totalGap.toLocaleString()}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700 text-xs text-slate-400">
+        <strong className="text-white">Per residential unit impact:</strong> The $14,976/yr gap is split across ~13 residential units proportionally. A unit with ~4.7% common interest absorbs ~$997/yr, or ~$11,966 over 12 years. The residential owners have collectively subsidized the commercial floor by ${totalGap.toLocaleString()} since Alvic took over.
+      </div>
+    </Sec>
+    <Sec title="Declaration vs Reality" sub="What the governing documents actually require">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-slate-800/50 border border-teal-700/40 rounded-xl p-4">
+          <p className="text-teal-400 font-bold text-sm mb-2">Declaration Art. V — What It Says</p>
+          <p className="text-slate-300 text-sm">Common charges shall be assessed to each unit owner in proportion to their percentage interest in the common elements. No exception for commercial units. No board resolution required to APPLY the formula — the formula IS the rule.</p>
+        </div>
+        <div className="bg-slate-800/50 border border-red-700/40 rounded-xl p-4">
+          <p className="text-red-400 font-bold text-sm mb-2">Alvic Reality — What They Did</p>
+          <p className="text-slate-300 text-sm">Set HM1+HM1A at $627/mo from day one. Never adjusted. Never produced a board resolution authorizing the below-formula rate. When asked, produced no documentation. 12 years, $179,712 in cumulative underpayment.</p>
+        </div>
+      </div>
+    </Sec>
+    <Sec title="The Governance Lock — Why It Couldn't Be Fixed" sub="The arrangement was self-reinforcing">
+      <div className="space-y-2">
+        {[{n:"1",t:"Kamenetsky proxies to Sokolov",d:"100% of HM1+HM1A votes (17.94%) go to Sokolov. Combined with HM2 (11.58%): Sokolov controls 29.52% — the largest single bloc."},
+          {n:"2",t:"Sokolov signed the false lien release",d:"The man controlling the governance apparatus is also directly implicated in the C-2 fraud. He had every reason to keep Alvic in place."},
+          {n:"3",t:"Alvic controlled the books",d:"No independent audit. CPA worked from Alvic-curated Buildium data. The $627 rate never appeared as a line-item deviation in any report."},
+          {n:"4",t:"Board meetings were Alvic-managed",d:"Agenda, minutes, financials — all through Alvic. No owner was positioned to independently calculate the proportional rate gap."}
+        ].map((item,i)=><div key={i} className="flex gap-3 bg-slate-800/40 border border-slate-700/40 rounded-lg p-3">
+          <span className="text-red-400 font-black text-lg flex-shrink-0">{item.n}</span>
+          <div><p className="text-white font-semibold text-sm">{item.t}</p><p className="text-slate-400 text-xs mt-0.5">{item.d}</p></div>
+        </div>)}
+      </div>
+    </Sec>
+  </div>;
+}
+
 function TabTimeline() {
   const events = [
     {yr:"2005",ev:"Declaration filed by Motovich/Bedshore Realty LLC. Gruber listed as C/O.",c:"purple"},
@@ -602,6 +684,7 @@ function App() {
     {label:"THE PATTERN",component:()=><><TabPattern/><TabPatternCont/></>},
     {label:"CRIMINAL",component:TabCriminal},
     {label:"DAMAGES",component:TabDamages},
+    {label:"COMMERCIAL SUBSIDY",component:TabCommercial},
     {label:"PRIOR CONDUCT",component:()=><><TabPriorConduct/><TabPriorCont/></>},
     {label:"NETWORK",component:TabNetwork},
     {label:"TIMELINE",component:TabTimeline},
