@@ -506,12 +506,12 @@ function TabCommercial() {
     <div className="bg-teal-950/50 border border-teal-700 rounded-xl p-5">
       <p className="text-teal-400 text-xs font-bold uppercase tracking-widest mb-2">Commercial Floor — 12-Year Underpayment</p>
       <div className="grid grid-cols-3 gap-4 mt-3">
-        <div className="text-center"><div className="text-3xl font-black text-teal-300">${totalGap.toLocaleString()}</div><div className="text-xs text-slate-400 mt-1">Total building shortfall (12 yrs)</div></div>
+        <div className="text-center"><div className="text-3xl font-black text-teal-300">$210K+</div><div className="text-xs text-slate-400 mt-1">Full exposure (HOA + insurance + water)</div></div>
+        <div className="text-center"><div className="text-3xl font-black text-teal-300">$179,712</div><div className="text-xs text-slate-400 mt-1">HOA common charge gap only (floor)</div></div>
         <div className="text-center"><div className="text-3xl font-black text-red-400">66%</div><div className="text-xs text-slate-400 mt-1">Discount below proportional rate</div></div>
-        <div className="text-center"><div className="text-3xl font-black text-amber-400">$14,976</div><div className="text-xs text-slate-400 mt-1">Annual shortfall to building</div></div>
       </div>
       <div className="mt-4 p-3 bg-slate-900/60 rounded-lg border border-slate-700">
-        <p className="text-xs text-slate-300"><strong className="text-white">How the number is calculated:</strong> Kamenetsky holds 17.94% common interest (HM1+HM1A combined). Per Declaration Art. V, common charges are assessed proportionally. At ~$10,450/mo total building revenue, HM1+HM1A's proportional share is ~$1,875/mo. Kamenetsky pays $627/mo. Gap: $1,248/mo × 12 = <strong className="text-teal-300">$14,976/yr shortfall to the building</strong>. This is the aggregate total — NOT a per-residential-unit figure. Each residential unit bears a proportional share of this burden (~$997/yr for a typical ~4.7% interest unit, ~$11,966 over 12 years).</p>
+        <p className="text-xs text-slate-300"><strong className="text-white">What $179,712 captures:</strong> The HOA common charge gap only — what Kamenetsky underpaid vs his proportional share of the base assessment, at a flat rate. It does <strong className="text-amber-300">not</strong> separately capture his share of water overcharges, the inflated insurance burden, or any commercial-use surcharge the Declaration may require. The full exposure is higher. See breakdown below.</p>
       </div>
     </div>
     <Sec title="Why It's $627 and Not $1,875">
@@ -541,7 +541,46 @@ function TabCommercial() {
         <strong className="text-white">Per residential unit impact:</strong> The $14,976/yr gap is split across ~13 residential units proportionally. A unit with ~4.7% common interest absorbs ~$997/yr, or ~$11,966 over 12 years. The residential owners have collectively subsidized the commercial floor by ${totalGap.toLocaleString()} since Alvic took over.
       </div>
     </Sec>
-    <Sec title="Declaration vs Reality" sub="What the governing documents actually require">
+    <Sec title="Full Exposure — Three Layers" sub="$179,712 is the floor. Per Declaration, commercial also owes on water and insurance.">
+      <div className="overflow-x-auto mb-4">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b border-slate-700"><th className="text-left py-2 text-slate-400">Layer</th><th className="text-left py-2 text-slate-400">What it is</th><th className="text-left py-2 text-slate-400">Basis</th><th className="text-right py-2 text-slate-400">Estimated Amount</th></tr></thead>
+          <tbody>
+            <tr className="border-b border-slate-800">
+              <td className="py-2 text-teal-400 font-bold whitespace-nowrap">Layer 1</td>
+              <td className="py-2 text-white text-xs">HOA common charge gap (flat rate)</td>
+              <td className="py-2 text-slate-400 text-xs">$1,875/mo owed − $627/mo paid × 12mo × 12yr</td>
+              <td className="py-2 text-right text-teal-300 font-bold">$179,712</td>
+            </tr>
+            <tr className="border-b border-slate-800 bg-amber-950/10">
+              <td className="py-2 text-amber-400 font-bold whitespace-nowrap">Layer 2</td>
+              <td className="py-2 text-white text-xs">HM1's share of insurance excess above market</td>
+              <td className="py-2 text-slate-400 text-xs">~$137K total excess (2017–2025) × 17.94% proportional share. Insurance spiked from $11K → $71K driven by unresolved ECB #35237084J — a condition Alvic created and Kamenetsky's governance bloc prevented correction of.</td>
+              <td className="py-2 text-right text-amber-300 font-bold">~$24,500</td>
+            </tr>
+            <tr className="border-b border-slate-800 bg-amber-950/10">
+              <td className="py-2 text-amber-400 font-bold whitespace-nowrap">Layer 3</td>
+              <td className="py-2 text-white text-xs">HM1's share of 2019 water anomaly</td>
+              <td className="py-2 text-slate-400 text-xs">2019 water/sewer: $48,352 vs ~$17,000 normal = $31,352 excess × 17.94%. If commercial floor is not separately metered as Declaration may require, this excess hit residential owners disproportionately.</td>
+              <td className="py-2 text-right text-amber-300 font-bold">~$5,625</td>
+            </tr>
+            <tr className="border-b border-slate-800 bg-red-950/10">
+              <td className="py-2 text-red-400 font-bold whitespace-nowrap">Layer 3+</td>
+              <td className="py-2 text-white text-xs">Commercial insurance surcharge (Declaration)</td>
+              <td className="py-2 text-slate-400 text-xs">If Declaration requires commercial floor to bear higher insurance allocation (standard in NYC mixed-use condos due to liability/fire risk from commercial operations), HM1's share exceeds the flat 17.94%. Amount depends on what policy allocates to commercial occupancy risk — not yet quantified.</td>
+              <td className="py-2 text-right text-red-400 font-bold">TBD</td>
+            </tr>
+            <tr className="border-t-2 border-teal-700 bg-teal-950/20">
+              <td className="py-2 text-teal-300 font-black" colSpan={3}>CONSERVATIVE TOTAL (Layers 1–3, excluding surcharge)</td>
+              <td className="py-2 text-right text-teal-300 font-black text-lg">~$209,837</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-xs text-slate-400">
+        <strong className="text-white">What $179,712 is and isn't:</strong> It is the HOA common charge underpayment only, calculated at a flat monthly rate. It is NOT: the insurance excess, the water overcharge, or any commercial-use surcharge. Water and insurance costs ARE inside common charges — so underpaying common charges means Kamenetsky is underpaying on those too. But the SPIKE years (2019 water, 2022–2025 insurance) represent expense levels far above the flat $1,875/mo assumption, meaning his actual proportional debt in those years was larger. The full picture across all three layers is approximately $210K–$260K+ depending on how the Declaration is read on commercial surcharges.
+      </div>
+    </Sec>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-slate-800/50 border border-teal-700/40 rounded-xl p-4">
           <p className="text-teal-400 font-bold text-sm mb-2">Declaration Art. V — What It Says</p>
