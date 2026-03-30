@@ -521,24 +521,30 @@ function TabCommercial() {
         <div className="bg-red-950/30 border border-red-800/40 rounded-lg p-3"><p><strong className="text-red-400">Not passive.</strong> Kamenetsky pays $34.98 per percentage point. Every other owner pays ~$104/percentage point. He attends no meetings, files no objections, never questions the books. The silence and the discount arrived together and have coexisted for over a decade.</p></div>
       </div>
     </Sec>
-    <Sec title="Year-by-Year Shortfall" sub="What Kamenetsky paid vs what he owed">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b border-slate-700"><th className="text-left py-2 text-slate-400">Year</th><th className="text-right py-2 text-slate-400">Paid/mo</th><th className="text-right py-2 text-slate-400">Owed/mo</th><th className="text-right py-2 text-slate-400">Monthly Gap</th><th className="text-right py-2 text-slate-400">Annual Gap</th></tr></thead>
-          <tbody>
-            {yearRows.map((r,i)=><tr key={i} className="border-b border-slate-800 hover:bg-slate-800/30">
-              <td className="py-1.5 text-white font-mono">{r.yr}</td>
-              <td className="py-1.5 text-right text-red-400">${r.paid}</td>
-              <td className="py-1.5 text-right text-slate-300">~${r.proper}</td>
-              <td className="py-1.5 text-right text-amber-400">-${r.gap}</td>
-              <td className="py-1.5 text-right text-red-400 font-semibold">-${(r.gap*12).toLocaleString()}</td>
-            </tr>)}
-            <tr className="border-t-2 border-teal-700 bg-teal-950/20"><td className="py-2 text-teal-300 font-black" colSpan={4}>12-YEAR TOTAL SHORTFALL TO BUILDING</td><td className="py-2 text-right text-teal-300 font-black text-lg">-${totalGap.toLocaleString()}</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700 text-xs text-slate-400">
-        <strong className="text-white">Per residential unit impact:</strong> The $14,976/yr gap is split across ~13 residential units proportionally. A unit with ~4.7% common interest absorbs ~$997/yr, or ~$11,966 over 12 years. The residential owners have collectively subsidized the commercial floor by ${totalGap.toLocaleString()} since Alvic took over.
+    <Sec title="The Shortfall in One Line">
+      <div className="flex flex-col gap-3">
+        <div className="bg-slate-800/60 border border-red-700/40 rounded-xl p-4 text-sm text-slate-300">
+          Kamenetsky paid <strong className="text-red-400">$627/mo</strong> for 12 years. His proportional obligation under the Declaration was <strong className="text-teal-400">~$1,875/mo</strong>. Gap: <strong className="text-amber-400">$1,248/mo · $14,976/yr · ${totalGap.toLocaleString()} cumulative</strong> — absorbed entirely by the building's residential owners.
+        </div>
+        <div className="bg-slate-900/60 border border-amber-700/30 rounded-xl p-4">
+          <p className="text-amber-400 font-bold text-sm mb-2">Who's Actually Absorbing This</p>
+          <p className="text-slate-300 text-xs mb-3">Every residential owner pays roughly <strong className="text-white">$70/percentage point per month</strong>. Kamenetsky pays <strong className="text-red-400">$35/percentage point</strong> — half the residential rate, on nearly 18% of the building. The shortfall doesn't disappear. It redistributes. Each residential unit quietly overpays relative to what they'd owe if the commercial floor were assessed correctly.</p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {[
+              {unit:"C2 / Gabi (4.25%)",mo:"$296",absorbed:"~$747/yr · ~$8,964 over 12yr"},
+              {unit:"H3B / Pavel (5.80%)",mo:"$440",absorbed:"~$870/yr · ~$10,440 over 12yr"},
+              {unit:"F / Zusman (5.51%)",mo:"$374",absorbed:"~$826/yr · ~$9,912 over 12yr"},
+              {unit:"D1 / Grinman (4.37%)",mo:"$304",absorbed:"~$769/yr · ~$9,228 over 12yr"},
+              {unit:"G / Kul (5.89%)",mo:"$374",absorbed:"~$883/yr · ~$10,596 over 12yr"},
+              {unit:"H4B / Yalkanovich (4.10%)",mo:"$276",absorbed:"~$738/yr · ~$8,856 over 12yr"},
+            ].map((u,i)=><div key={i} className="bg-slate-800/50 border border-slate-700/40 rounded-lg p-2">
+              <p className="text-white font-semibold">{u.unit}</p>
+              <p className="text-slate-400">Pays {u.mo}/mo</p>
+              <p className="text-amber-300">Excess absorbed: {u.absorbed}</p>
+            </div>)}
+          </div>
+          <p className="text-xs text-slate-500 mt-3 italic">These figures are contextual only — the $179,712 damages figure represents what Kamenetsky owes the building, not individual owner losses. Individual recovery would require a separate legal theory.</p>
+        </div>
       </div>
     </Sec>
     <Sec title="Full Exposure — Three Layers" sub="$179,712 is the floor. Per Declaration, commercial also owes on water and insurance.">
