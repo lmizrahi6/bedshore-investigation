@@ -124,8 +124,9 @@ function ChapterCard({num,title,what,cost,proves,evidence,screenshots}) {
 // ═══ DATA ═══
 const networkNodes = [
   {id:"motovich",name:"Boris Motovich",sub:"Bedshore sponsor · Midwood Lumber founder",tier:"sponsor",x:400,y:220,r:32},
-  {id:"gruber",name:"Harold Gruber",sub:"AG-banned 2014",tier:"sponsor",x:280,y:100,r:22},
-  {id:"alex",name:"Alexander Motovich",sub:"9+ units",tier:"sponsor",x:520,y:100,r:22},
+  {id:"david",name:"David Motovich",sub:"15yr federal · $55M scheme",tier:"sponsor",x:270,y:320,r:24},
+  {id:"gruber",name:"Harold Gruber",sub:"AG-banned 2014",tier:"sponsor",x:150,y:180,r:22},
+  {id:"alex",name:"Alexander Motovich",sub:"9+ units · Alvic buildings",tier:"sponsor",x:520,y:100,r:22},
   {id:"alvic",name:"Alvic Prop. Mgmt",sub:"104 Ave O",tier:"alvic",x:600,y:220,r:24},
   {id:"levin",name:"Seymon Levin",sub:"Sole signatory",tier:"alvic",x:650,y:340,r:22},
   {id:"levina",name:"Alina Levina",sub:"Attorney/daughter",tier:"alvic",x:550,y:400,r:20},
@@ -142,9 +143,10 @@ const networkNodes = [
   {id:"kitsis",name:"Kitsis Network",sub:"Prior fraud · 1824 E 17th",tier:"prior",x:160,y:220,r:20}
 ];
 const networkEdges = [
-  {from:"motovich",to:"alvic",desc:"Motovich owned Bedshore units during Alvic management. Pattern: build condos, retain units, install management."},
-  {from:"motovich",to:"gruber",desc:"Gruber was Motovich's attorney. Both filed false instruments. Gruber banned 2014 for 9 fraudulent AG filings."},
+  {from:"motovich",to:"alvic",desc:"Boris Motovich selected Alvic as Bedshore's property manager when he sponsored the building. He retained Bedshore Realty LLC units during management."},
+  {from:"motovich",to:"david",desc:"Boris and David Motovich are documented relatives — both listed as principals of Midwood Lumber & Millwork (1169 Coney Island Ave). Court records (EDNY 21-CR-497) name Boris as David's relative."},
   {from:"motovich",to:"alex",desc:"Motovich family enterprise member. Continues acquisition pattern: 9+ Brooklyn units since 2018, same-day POAs, at least 2 in Alvic-managed buildings (confirmed via HPD)."},
+  {from:"david",to:"gruber",desc:"Harold Gruber was David Motovich's attorney. Gruber AG-banned 2014 for 9 fraudulent AG filings involving false instruments — the same method used at Bedshore. Both operated on Block 8782."},
   {from:"alex",to:"alvic",desc:"Alexander's units at 2158 Ocean Ave and 380 Kings Hwy are Alvic-managed (HPD confirmed)."},
   {from:"alvic",to:"levin",desc:"Levin IS Alvic. Sole bank signatory. Bought D-2 and B-2. On both sides of every transaction."},
   {from:"levin",to:"levina",desc:"Father-daughter. Levina notarized false lien release while serving as condo's attorney."},
