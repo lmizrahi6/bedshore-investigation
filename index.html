@@ -94,7 +94,7 @@ function KPI({label,value,sub,color}) {
   </div>;
 }
 function EL({crfn,label,href,type}) {
-  const url = href || (crfn ? "https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000" : null);
+  const url = href || (crfn ? `https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentDetail?doc_id=${crfn}` : null);
   if (url) return <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:brightness-125 underline decoration-slate-700">{crfn&&<span className="font-mono bg-slate-800 px-1 rounded">CRFN {crfn}</span>}{label&&<span>{label}</span>}{"\u2197"}</a>;
   return <span className="text-xs text-slate-500 font-mono">{crfn||label}</span>;
 }
@@ -115,7 +115,7 @@ function ChapterCard({num,title,what,cost,proves,evidence,screenshots}) {
     {open&&<div className="px-5 pb-5 space-y-3 border-t border-slate-700 pt-4">
       <div><p className="text-xs text-red-400 font-bold uppercase mb-1">What they did</p><p className="text-sm text-slate-300"><Name>{what}</Name></p></div>
       <div><p className="text-xs text-amber-400 font-bold uppercase mb-1">What it proves</p><p className="text-sm text-slate-300"><Name>{proves}</Name></p></div>
-      {evidence&&<div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-slate-700/50"><span className="text-xs text-slate-600 uppercase font-bold">Sources:</span>{evidence.map((e,i)=>typeof e==='string'?<span key={i} className="text-xs text-slate-500">{e}</span>:<a key={i} href={e.href||'https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000'} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">{e.crfn?'CRFN '+e.crfn:e.label} \u2197</a>)}{screenshots&&<button onClick={(ev)=>{ev.stopPropagation();setShowEv(!showEv);}} className="text-xs bg-amber-950/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded hover:bg-amber-900/60 ml-auto">{showEv?"Hide":"\ud83d\udcf7 View"} Evidence ({screenshots.length})</button>}</div>}
+      {evidence&&<div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-slate-700/50"><span className="text-xs text-slate-600 uppercase font-bold">Sources:</span>{evidence.map((e,i)=>typeof e==='string'?<span key={i} className="text-xs text-slate-500">{e}</span>:(e.href||e.crfn)?<a key={i} href={e.href||(e.crfn?`https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentDetail?doc_id=${e.crfn}`:'')} target="_blank" className="text-xs text-blue-400 hover:text-blue-300 underline">{e.crfn?'CRFN '+e.crfn:e.label} ↗</a>:<span key={i} className="text-xs text-slate-400">{e.label}</span>)}{screenshots&&<button onClick={(ev)=>{ev.stopPropagation();setShowEv(!showEv);}} className="text-xs bg-amber-950/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded hover:bg-amber-900/60 ml-auto">{showEv?"Hide":"\ud83d\udcf7 View"} Evidence ({screenshots.length})</button>}</div>}
       {showEv&&screenshots&&<div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">{screenshots.map((s,i)=><a key={i} href={s.img} target="_blank" className="block rounded-lg overflow-hidden border border-slate-700 hover:border-amber-600"><div className="aspect-video bg-slate-900 overflow-hidden"><img src={s.img} alt={s.label} className="w-full h-full object-cover" onError={(ev)=>{ev.target.style.display='none';}}/></div><p className="text-xs text-slate-400 p-1.5">{s.label}</p></a>)}</div>}
     </div>}
   </div>;
@@ -144,7 +144,7 @@ const networkNodes = [
 const networkEdges = [
   {from:"motovich",to:"alvic",desc:"Motovich owned Bedshore units during Alvic management. Pattern: build condos, retain units, install management."},
   {from:"motovich",to:"gruber",desc:"Gruber was Motovich's attorney. Both filed false instruments. Gruber banned 2014 for 9 fraudulent AG filings."},
-  {from:"motovich",to:"alex",desc:"Likely father-son. Alexander continues pattern: 9+ units, same-day POAs, at least 2 in Alvic-managed buildings."},
+  {from:"motovich",to:"alex",desc:"Motovich family enterprise member. Continues acquisition pattern: 9+ Brooklyn units since 2018, same-day POAs, at least 2 in Alvic-managed buildings (confirmed via HPD)."},
   {from:"alex",to:"alvic",desc:"Alexander's units at 2158 Ocean Ave and 380 Kings Hwy are Alvic-managed (HPD confirmed)."},
   {from:"alvic",to:"levin",desc:"Levin IS Alvic. Sole bank signatory. Bought D-2 and B-2. On both sides of every transaction."},
   {from:"levin",to:"levina",desc:"Father-daughter. Levina notarized false lien release while serving as condo's attorney."},
@@ -752,7 +752,7 @@ function App() {
       <TabComp/>
       <div className="text-center py-6 mt-4 border-t border-slate-800">
         <div className="flex flex-wrap justify-center gap-3 mb-3">
-          <a href="https://a836-acris.nyc.gov/DS/DocumentSearch/BBLResult?bbl=3087820000" target="_blank" className="text-xs text-blue-500 hover:text-blue-400 underline">ACRIS Block 8782</a>
+          <a href="https://a836-acris.nyc.gov/DS/DocumentSearch/PartyName?last_name=BEDSHORE&address=&borough=3&doc_type=&date_range_start=&date_range_end=&party1_type=&SearchType=PARTY1_PARTY2_SEARCH" target="_blank" className="text-xs text-blue-500 hover:text-blue-400 underline">ACRIS Block 8782</a>
           <a href="https://iapps.courts.state.ny.us/nyscef/DocumentList?docketId=c9hKSncsngJn3mtS/spTYg==" target="_blank" className="text-xs text-teal-500 hover:text-teal-400 underline">Levin v Kitsis (NYSCEF)</a>
           <a href="https://a810-bisweb.nyc.gov/bisweb/ECBQueryByNumberServlet?requestid=1&ecession=35237084J" target="_blank" className="text-xs text-orange-500 hover:text-orange-400 underline">ECB #35237084J</a>
           <a href="https://apps.dos.ny.gov/publicInquiry/" target="_blank" className="text-xs text-purple-500 hover:text-purple-400 underline">NY DOS Entity Search</a>
