@@ -660,7 +660,7 @@ function TabPL() {
   return <div className="space-y-4">
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <KPI label="Excess Insurance (2017-2025)" value={fmt(insOver)} sub="vs market comparable" color="red"/>
-      <KPI label="2019 Water/Sewer" value="$48,352" sub="~3\u00d7 normal annual amount" color="amber"/>
+      <KPI label="2019 Water/Sewer" value="$48,352" sub="~3× normal annual amount" color="amber"/>
       <KPI label="Cumulative Net Loss (2020-25)" value={fmt(bankData.filter(d=>parseInt(d.year)>=2020).reduce((s,d)=>s+d.net,0))} sub="Expenses exceed revenue every year" color="red"/>
     </div>
     <Sec title="Revenue vs Expenses \u2014 Year over Year" sub="Click any bar to expand detailed line items">
@@ -688,7 +688,7 @@ function TabPL() {
         {categories.map((cat,i)=>{
           const vals=["2017","2018","2019","2024"].map(y=>{const sd=spendingData.find(d=>d.year===y);const item=sd?sd.exp_detail.find(e=>e.item.includes(cat.split("/")[0])):null;return item?item.amt:null;});
           const maxVal=Math.max(...vals.filter(v=>v!==null));
-          const flag=cat==="Insurance"?"\u26a0\ufe0f 535% increase":cat==="Water/Sewer"?"\u26a0\ufe0f 3\u00d7 spike 2019":null;
+          const flag=cat==="Insurance"?"⚠️ 535% increase":cat==="Water/Sewer"?"⚠️ 3× spike 2019":null;
           return <tr key={i} className="border-b border-slate-800 hover:bg-slate-800/30"><td className="py-2 px-2 text-white font-medium"><span className="inline-block w-2 h-2 rounded-full mr-2" style={{background:catColors[cat]||"#64748b"}}/>{cat}</td>
             {vals.map((v,j)=><td key={j} className={`py-2 px-2 text-right font-mono ${v===maxVal&&maxVal>0?"text-red-400 font-bold":"text-slate-400"}`}>{v?fmt(v):"\u2014"}</td>)}
             <td className="py-2 px-2 text-right text-amber-400 text-xs">{flag||""}</td>
