@@ -123,7 +123,7 @@ function ChapterCard({num,title,what,cost,proves,evidence,screenshots}) {
 
 // ═══ DATA ═══
 const networkNodes = [
-  {id:"motovich",name:"Boris Motovich",sub:"15yr federal · shells reused",tier:"sponsor",x:400,y:220,r:32},
+  {id:"motovich",name:"Boris Motovich",sub:"Bedshore sponsor · Midwood Lumber founder",tier:"sponsor",x:400,y:220,r:32},
   {id:"gruber",name:"Harold Gruber",sub:"AG-banned 2014",tier:"sponsor",x:280,y:100,r:22},
   {id:"alex",name:"Alexander Motovich",sub:"9+ units",tier:"sponsor",x:520,y:100,r:22},
   {id:"alvic",name:"Alvic Prop. Mgmt",sub:"104 Ave O",tier:"alvic",x:600,y:220,r:24},
@@ -178,7 +178,7 @@ function TabThesis() {
   return <div className="space-y-4">
     <div className="bg-gradient-to-r from-red-950/80 to-slate-900 rounded-xl border border-red-900 p-6">
       <h2 className="text-2xl font-bold text-white mb-3">$1.1 Million+ Extracted Over 12 Years Through Five Mechanisms</h2>
-      <p className="text-slate-300 text-sm leading-relaxed"><n>A convicted federal felon (Boris Motovich, 15 years federal) sponsored Bedshore Condominium, installed Alvic Property Management (Seymon Levin) whose shell company operated on the same tax block (Block 8782), and for 12 years that management company extracted over one million dollars through false document filings, self-dealing real estate transactions, insurance diversion, manufactured phantom receivables, and structural overcharging — while governance was controlled by a proxy voting bloc (Andrey Sokolov, ~30%) that ensured no independent oversight.</n></p>
+      <p className="text-slate-300 text-sm leading-relaxed"><n>Bedshore was sponsored by Boris Motovich — founder of Midwood Lumber & Millwork — who installed Alvic Property Management (Seymon Levin), whose shell company operated on the same tax block (Block 8782). His family's business was later proven a criminal front: David Motovich, operating the same Midwood Lumber from 1169 Coney Island Ave, was convicted July 2024 and sentenced to 15 years federal for a $55M scheme. For 12 years Alvic extracted over one million dollars through false document filings, self-dealing real estate transactions, insurance diversion, manufactured phantom receivables, and structural overcharging — while governance was controlled by a proxy voting bloc (Andrey Sokolov, ~30%) that ensured no independent oversight.</n></p>
       <p className="text-slate-400 text-sm mt-3"><n>When a new board was elected (Feb 24, 2026), Alvic triggered a bank lockout via a fictitious check, refused audit logs, invoked laches, and admitted in writing that Alina Levina could not explain the central instrument she personally notarized. The management contract binding the Association was signed 15 days before the election, backdated 39 days, and never countersigned by Alvic's own general manager.</n></p>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -415,10 +415,10 @@ function TabPriorConduct() {
 
 function TabPriorCont() {
   return <div className="space-y-4">
-    <Sec title="C. The Sponsor: Boris Motovich" sub="Convicted federal felon who signed the Bedshore Declaration">
+    <Sec title="C. The Sponsor: Boris Motovich" sub="Signed the Bedshore Declaration · Family business convicted in $55M federal case">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-2 text-sm text-slate-300">
-          <p><n>Boris Motovich signed the Bedshore Declaration on behalf of Bedshore Realty LLC. Convicted July 2024 (EDNY) of bank fraud, money laundering, aggravated identity theft. $55M illegal check-cashing scheme through Midwood Lumber (1169 Coney Island Ave). Sentenced Nov 2025: 15 years federal. Forfeiture: ~$38M.</n></p>
+          <p><n>Boris Motovich signed the Bedshore Declaration on behalf of Bedshore Realty LLC as the building's sponsor. Boris is the founder and principal of Midwood Lumber & Millwork (1169 Coney Island Ave, Brooklyn). David Motovich — a family member operating the same business — was convicted July 2024 (EDNY) of bank fraud, money laundering, aggravated identity theft, and running a $55M illegal check-cashing scheme from Midwood Lumber's second floor. David was sentenced November 2025: 15 years federal, ~$38M forfeiture. Boris Motovich himself has not been charged and currently resides in Miami.</n></p>
           <p>MO: created shell companies, opened accounts in other people's names, forged signatures, bribed bankers — indistinguishable from patterns at Bedshore.</p>
           <p><n>Harold Gruber (offering plan attorney) was PERMANENTLY BANNED by NY AG in 2014 for fraudulent filings.</n></p>
         </div>
@@ -625,10 +625,10 @@ function TabTimeline() {
     {yr:"Jul 2019",ev:"$74K insurance payout. Alvic self-pays $53,471 (72%). Repair vendor gets $4K.",c:"red"},
     {yr:"Sep 2019",ev:"Levin sells D-2 for $687K ($187K profit, 4 months, undisclosed).",c:"red"},
     {yr:"2021-24",ev:"HPD sues 4 Alvic buildings for habitability failures (one per year, including Manhattan).",c:"orange"},
-    {yr:"Jul 2024",ev:"Boris Motovich CONVICTED (EDNY): bank fraud, money laundering, identity theft.",c:"purple"},
+    {yr:"Jul 2024",ev:"David Motovich CONVICTED (EDNY): $55M check-cashing scheme run from Midwood Lumber — the Bedshore sponsor's family business.",c:"purple"},
     {yr:"Jan 2024",ev:"Kitsis: summary judgment DENIED. Court notes 'self-dealing between themselves.'",c:"teal"},
     {yr:"Jun 2025",ev:"Levin v. Kitsis DISMISSED — Levin fails to appear for trial (2nd no-show in 16 years).",c:"teal"},
-    {yr:"Nov 2025",ev:"Motovich sentenced: 15 years federal, $38M forfeiture.",c:"purple"},
+    {yr:"Nov 2025",ev:"David Motovich sentenced: 15 years federal, $38M forfeiture. Boris (Bedshore sponsor) alive in Miami, not charged.",c:"purple"},
     {yr:"Feb 9, 2026",ev:"Management contract created in DocuSign. Backdated to Jan 1. Sokolov signs on mobile in 42 min. Levina never signs.",c:"red"},
     {yr:"Feb 24, 2026",ev:"New Board elected. First contested election in building history.",c:"green"},
     {yr:"Mar 2, 2026",ev:"Check #1029 ($3,600 to 'Joeseanna Harris') → bank lockout triggered. 25+ days locked out.",c:"red"},
